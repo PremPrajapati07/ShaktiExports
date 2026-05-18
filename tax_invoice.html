@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tax Invoice - Dhanush Labgrown</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #e8e4dc;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 30px 20px;
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    color: #111;
+  }
+
+  .invoice-wrapper {
+    background: #fff;
+    width: 740px;
+    padding: 20px 24px 24px;
+    border: 1px solid #aaa;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.13);
+  }
+
+  .title {
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    text-decoration: underline;
+  }
+
+  /* ── OUTER BORDER WRAPPER ── */
+  .invoice-body {
+    border: 1px solid #666;
+  }
+
+  /* ── ROW 1: Seller left | Invoice meta right ── */
+  .row-seller {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid #666;
+  }
+
+  .seller-left {
+    padding: 7px 9px;
+    border-right: 1px solid #666;
+  }
+
+  .seller-name { font-weight: 700; font-size: 11.5px; margin-bottom: 2px; }
+  .seller-addr { font-size: 10.5px; line-height: 1.55; }
+
+  /* Right meta: stacked rows */
+  .meta-right { display: flex; flex-direction: column; }
+
+  .meta-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid #666;
+    flex: 1;
+  }
+  .meta-row:last-child { border-bottom: none; }
+
+  .meta-cell {
+    padding: 4px 8px;
+    font-size: 10.5px;
+    line-height: 1.4;
+    min-height: 22px;
+  }
+  .meta-cell:first-child { border-right: 1px solid #666; }
+  .meta-cell .mlabel { font-size: 10px; color: #444; }
+  .meta-cell .mval   { font-weight: 700; font-size: 10.5px; }
+
+  /* ── ROW 2: Consignee left | (right side empty per original) ── */
+  .row-consignee {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid #666;
+  }
+
+  .consignee-left {
+    padding: 7px 9px;
+    border-right: 1px solid #666;
+    font-size: 10.5px;
+    line-height: 1.6;
+  }
+
+  .consignee-right {
+    padding: 7px 9px;
+    font-size: 10.5px;
+  }
+
+  .section-label {
+    font-size: 10px;
+    color: #444;
+    margin-bottom: 2px;
+  }
+
+  .party-name { font-weight: 700; font-size: 11.5px; margin-bottom: 1px; }
+
+  .pr { display: flex; gap: 4px; }
+  .pk { min-width: 76px; color: #444; }
+
+  /* ── ROW 3: Buyer left | right empty ── */
+  .row-buyer {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid #666;
+  }
+
+  .buyer-left {
+    padding: 7px 9px;
+    border-right: 1px solid #666;
+    font-size: 10.5px;
+    line-height: 1.6;
+  }
+
+  .buyer-right { padding: 7px 9px; font-size: 10.5px; }
+
+  /* ── ROW 4: Terms of Delivery ── */
+  .row-terms {
+    padding: 4px 9px;
+    font-size: 10.5px;
+    border-bottom: 1px solid #666;
+  }
+  .row-terms b { font-weight: 700; }
+
+  /* ── ITEMS TABLE ── */
+  table.items {
+    width: 100%;
+    border-collapse: collapse;
+    border-bottom: 1px solid #666;
+  }
+
+  table.items th {
+    background: #f0f0f0;
+    border: 1px solid #888;
+    padding: 4px 6px;
+    font-size: 10.5px;
+    text-align: center;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  table.items td {
+    border: 1px solid #bbb;
+    padding: 5px 7px;
+    font-size: 10.5px;
+    vertical-align: top;
+  }
+
+  .tr { text-align: right; }
+  .tc { text-align: center; }
+  .tl { text-align: left; }
+
+  .item-bold { font-weight: 700; font-size: 11px; }
+
+  /* tax label rows */
+  td.tax-label {
+    text-align: right;
+    font-weight: 700;
+    border: none !important;
+    padding: 2px 5px !important;
+  }
+  td.tax-amount {
+    text-align: right;
+    border-left: none !important;
+    border-bottom: none !important;
+    padding: 2px 7px !important;
+  }
+
+  tr.total-row td {
+    font-weight: 700;
+    font-size: 11.5px;
+    border-top: 1.5px solid #666;
+    background: #f8f8f8;
+  }
+
+  /* ── AMOUNT IN WORDS ── */
+  .row-amtwords {
+    border-bottom: 1px solid #666;
+    padding: 5px 9px;
+    font-size: 10.5px;
+  }
+  .row-amtwords .alabel { font-size: 10px; color: #555; margin-bottom: 1px; }
+  .row-amtwords .aval   { font-weight: 700; }
+  .row-amtwords .oe     { text-align: right; font-size: 9.5px; color: #555; }
+
+  /* ── HSN SUMMARY TABLE ── */
+  table.hsn {
+    width: 100%;
+    border-collapse: collapse;
+    border-bottom: 1px solid #666;
+  }
+  table.hsn th {
+    background: #f0f0f0;
+    border: 1px solid #999;
+    padding: 3px 6px;
+    font-size: 10px;
+    text-align: center;
+    font-weight: 700;
+  }
+  table.hsn td {
+    border: 1px solid #ccc;
+    padding: 4px 7px;
+    font-size: 10.5px;
+    text-align: center;
+  }
+
+  /* ── TAX AMOUNT IN WORDS ── */
+  .row-taxwords {
+    border-bottom: 1px solid #666;
+    padding: 4px 9px;
+    font-size: 10.5px;
+  }
+  .row-taxwords .tlabel { color: #555; }
+  .row-taxwords .tval   { font-weight: 700; }
+
+  /* ── BOTTOM: Bank + Signatory ── */
+  .row-bottom {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .bank-col {
+    border-right: 1px solid #666;
+    padding: 8px 10px;
+    font-size: 10.5px;
+    line-height: 1.7;
+  }
+  .bank-col .btitle {
+    font-weight: 700;
+    font-size: 11px;
+    text-decoration: underline;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+  .brow { display: flex; gap: 4px; }
+  .bkey { min-width: 115px; color: #555; font-size: 10px; }
+  .bval { font-weight: 600; }
+
+  .sig-col {
+    padding: 8px 10px;
+    font-size: 10.5px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .sig-for    { font-weight: 700; font-size: 10.5px; margin-bottom: 6px; }
+  .sig-stamp  {
+    border: 1.5px solid #2255a4;
+    color: #2255a4;
+    font-weight: 700;
+    font-size: 10px;
+    padding: 4px 8px;
+    text-align: center;
+    letter-spacing: 0.3px;
+    margin-bottom: 28px;
+    text-transform: uppercase;
+  }
+  .sig-auth   { font-size: 10px; color: #444; text-align: right; }
+  .sig-dir    { font-weight: 700; font-size: 11px; text-align: right; margin-top: 3px; }
+
+  /* ── PAN + DECLARATION ── */
+  .row-pandecl {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-top: 1px solid #666;
+  }
+  .pan-col {
+    border-right: 1px solid #666;
+    padding: 7px 9px;
+    font-size: 10.5px;
+  }
+  .pan-label { color: #555; font-size: 10px; }
+  .pan-val   { font-weight: 700; font-size: 12px; margin-top: 2px; }
+
+  .decl-col {
+    padding: 7px 9px;
+    font-size: 10px;
+    line-height: 1.55;
+    color: #333;
+  }
+  .decl-title { font-weight: 700; font-size: 10.5px; margin-bottom: 2px; }
+
+  .footer-note {
+    text-align: center;
+    margin-top: 12px;
+    font-size: 10px;
+    color: #666;
+    letter-spacing: 0.3px;
+  }
+</style>
+</head>
+<body>
+<div class="invoice-wrapper">
+
+  <div class="title">Tax Invoice</div>
+
+  <div class="invoice-body">
+
+    <!-- ── ROW 1: Seller | Invoice Meta ── -->
+    <div class="row-seller">
+
+      <div class="seller-left">
+        <div class="seller-name">DHANUSH LABGROWN PRIVATE LIMITED</div>
+        <div class="seller-addr">
+          SY NO 42/43 PAIKY 1-2, 3RD FLOOR, ZADAFIYA BULDING<br>
+          HIRABAGH, VARACHHA ROAD,<br>
+          SURAT-395006<br>
+          GSTIN/UIN: 24AAKCD6431B1Z2<br>
+          State Name : Gujarat, Code : 24<br>
+          CIN: U32110GJ2024PTC148675
+        </div>
+      </div>
+
+      <div class="meta-right">
+        <div class="meta-row">
+          <div class="meta-cell">
+            <div class="mlabel">Invoice No.</div>
+            <div class="mval">296/26-27</div>
+          </div>
+          <div class="meta-cell">
+            <div class="mlabel">Dated</div>
+            <div class="mval">12-MAY-26</div>
+          </div>
+        </div>
+        <div class="meta-row">
+          <div class="meta-cell">
+            <div class="mlabel">Delivery Note</div>
+            <div class="mval">&nbsp;</div>
+          </div>
+          <div class="meta-cell">
+            <div class="mlabel">Mode/Terms of Payment</div>
+            <div class="mval">BEFORE 7 DAYS</div>
+          </div>
+        </div>
+        <div class="meta-row">
+          <div class="meta-cell">
+            <div class="mlabel">Reference No. &amp; Date.</div>
+            <div class="mval">&nbsp;</div>
+          </div>
+          <div class="meta-cell">
+            <div class="mlabel">Other References</div>
+            <div class="mval">&nbsp;</div>
+          </div>
+        </div>
+        <div class="meta-row">
+          <div class="meta-cell">
+            <div class="mlabel">Buyer's Order No.</div>
+            <div class="mval">&nbsp;</div>
+          </div>
+          <div class="meta-cell">
+            <div class="mlabel">Dated</div>
+            <div class="mval">&nbsp;</div>
+          </div>
+        </div>
+        <div class="meta-row">
+          <div class="meta-cell">
+            <div class="mlabel">Dispatch Doc No.</div>
+            <div class="mval">&nbsp;</div>
+          </div>
+          <div class="meta-cell">
+            <div class="mlabel">Delivery Note Date</div>
+            <div class="mval">&nbsp;</div>
+          </div>
+        </div>
+        <div class="meta-row" style="border-bottom:none;">
+          <div class="meta-cell">
+            <div class="mlabel">Dispatched through</div>
+            <div class="mval">&nbsp;</div>
+          </div>
+          <div class="meta-cell">
+            <div class="mlabel">Destination</div>
+            <div class="mval">&nbsp;</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <!-- end row-seller -->
+
+    <!-- ── ROW 2: Consignee ── -->
+    <div class="row-consignee">
+
+      <div class="consignee-left">
+        <div class="section-label">Consignee (Ship to)</div>
+        <div class="party-name">Vaama Jewellery</div>
+        <div>BLOCK-B SHOP NO-SF/223 SUPER CITY ARCADE</div>
+        <div>Santej Road Ahmedabad</div>
+        <div class="pr"><span class="pk">GSTIN/UIN</span><span>: 24AAYFV0322J1ZX</span></div>
+        <div class="pr"><span class="pk">PAN/IT No</span><span>: AAYFV0322J</span></div>
+        <div class="pr"><span class="pk">State Name</span><span>: Gujarat, Code : 24</span></div>
+      </div>
+
+      <!-- Right side of consignee row is blank per original invoice -->
+      <div class="consignee-right">
+          <div class="section-label">Terms for Delivery</div>
+
+      </div>
+
+    </div>
+
+    <!-- ── ROW 3: Buyer (Bill to) ── -->
+    <div class="row-buyer">
+
+      <div class="buyer-left">
+        <div class="section-label">Buyer (Bill to)</div>
+        <div class="party-name">Vaama Jewellery</div>
+        <div>BLOCK-B SHOP NO-SF/223 SUPER CITY ARCADE</div>
+        <div>Santej Road Ahmedabad</div>
+        <div class="pr"><span class="pk">GSTIN/UIN</span><span>: 24AAYFV0322J1ZX</span></div>
+        <div class="pr"><span class="pk">PAN/IT No</span><span>: AAYFV0322J</span></div>
+        <div class="pr"><span class="pk">State Name</span><span>: Gujarat, Code : 24</span></div>
+        <div class="pr"><span class="pk">Place of Supply</span><span>: Gujarat</span></div>
+      </div>
+
+      <!-- Right side of buyer row is blank per original invoice -->
+      <div class="buyer-right"></div>
+
+    </div>
+
+    <!-- ── ROW 4: Terms of Delivery ── -->
+    <div class="row-terms">
+      Terms of Delivery &nbsp;&nbsp;
+      <b>Goods Sold &amp; Delivered at Ahmedabad</b>
+    </div>
+
+    <!-- ── ITEMS TABLE ── -->
+    <table class="items">
+      <thead>
+        <tr>
+          <th style="width:26px;">Sl<br>No.</th>
+          <th style="text-align:left;">Description of Goods</th>
+          <th style="width:78px;">HSN/SAC</th>
+          <th style="width:68px;">Quantity</th>
+          <th style="width:68px;">Rate</th>
+          <th style="width:36px;">per</th>
+          <th style="width:80px;">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Item row -->
+        <tr>
+          <td class="tc">1</td>
+          <td class="tl">
+            <div class="item-bold">LABORATORY GROWN CUT &amp; POLISH DIAMOND</div>
+          </td>
+          <td class="tc">71049120</td>
+          <td class="tc">2.06 CRT</td>
+          <td class="tr">8,691.24</td>
+          <td class="tc">CRT</td>
+          <td class="tr">17,903.95</td>
+        </tr>
+        <!-- Spacer row to push tax labels down -->
+        <tr>
+          <td colspan="5" style="border:none;border-right:1px solid #bbb;height:30px;"></td>
+          <td colspan="2" style="border:none;"></td>
+        </tr>
+        <!-- CGST -->
+        <tr>
+          <td colspan="5" style="border:none;border-right:1px solid #bbb;padding:0;"></td>
+          <td class="tax-label">CGST</td>
+          <td class="tax-amount">134.28</td>
+        </tr>
+        <!-- SGST -->
+        <tr>
+          <td colspan="5" style="border:none;border-right:1px solid #bbb;padding:0;"></td>
+          <td class="tax-label">SGST</td>
+          <td class="tax-amount">134.28</td>
+        </tr>
+        <!-- Round Off -->
+        <tr>
+          <td colspan="5" style="border:none;border-right:1px solid #bbb;padding:0;"></td>
+          <td class="tax-label">ROUND OFF</td>
+          <td class="tax-amount">0.49</td>
+        </tr>
+        <!-- Total row -->
+        <tr class="total-row">
+          <td colspan="4" class="tr" style="padding:5px 9px;border-top:1.5px solid #666;">Total</td>
+          <td class="tc" style="border-top:1.5px solid #666;">2.06 CRT</td>
+          <td style="border-top:1.5px solid #666;"></td>
+          <td class="tr" style="border-top:1.5px solid #666;font-size:12px;">&#8377; 18,173.00</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- ── AMOUNT IN WORDS ── -->
+    <div class="row-amtwords">
+      <div class="alabel">Amount Chargeable (in words)</div>
+      <div class="aval">INR Eighteen Thousand One Hundred Seventy Three Only</div>
+      <div class="oe">E. &amp; O.E</div>
+    </div>
+
+    <!-- ── HSN SUMMARY ── -->
+    <table class="hsn">
+      <thead>
+        <tr>
+          <th rowspan="2">HSN/SAC</th>
+          <th rowspan="2">Taxable Value</th>
+          <th colspan="2">CGST</th>
+          <th colspan="2">SGST/UTGST</th>
+          <th rowspan="2">Total<br>Tax Amount</th>
+        </tr>
+        <tr>
+          <th>Rate</th>
+          <th>Amount</th>
+          <th>Rate</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>71049120</td>
+          <td class="tr">17,903.95</td>
+          <td>0.75%</td>
+          <td class="tr">134.28</td>
+          <td>0.75%</td>
+          <td class="tr">134.28</td>
+          <td class="tr">268.56</td>
+        </tr>
+        <tr style="font-weight:700;background:#f5f5f5;">
+          <td class="tr">Total</td>
+          <td class="tr">17,903.95</td>
+          <td></td>
+          <td class="tr">134.28</td>
+          <td></td>
+          <td class="tr">134.28</td>
+          <td class="tr">268.56</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- ── TAX AMOUNT IN WORDS ── -->
+    <div class="row-taxwords">
+      <span class="tlabel">Tax Amount (in words) &nbsp;: &nbsp;</span>
+      <span class="tval">INR Two Hundred Sixty Eight and Fifty Six paise Only</span>
+    </div>
+
+    <!-- ── BOTTOM: Bank | Signatory ── -->
+    <div class="row-bottom">
+      <div class="bank-col">
+        <div class="btitle">Company's Bank Details</div>
+        <div class="brow"><span class="bkey">A/c Holder's Name</span><span class="bval">: DHANUSH LABGROWN PRIVATE LIMITED</span></div>
+        <div class="brow"><span class="bkey">Bank Name</span><span class="bval">: Indusind Bank</span></div>
+        <div class="brow"><span class="bkey">A/c No.</span><span class="bval">: 259714217111</span></div>
+        <div class="brow"><span class="bkey">Branch &amp; IFS Code</span><span class="bval">: VARACHHA &amp; INDB0000573</span></div>
+        <div class="brow"><span class="bkey">SWIFT Code</span><span class="bval">: INDBINBBSUR</span></div>
+      </div>
+      <div class="sig-col">
+        <div>
+          <div class="sig-for">for DHANUSH LABGROWN PRIVATE LIMITED</div>
+          <div class="sig-stamp">DHANUSH LAB GROWN PRIVATE LIMITED</div>
+        </div>
+        <div>
+          <div class="sig-auth">Authorised Signatory</div>
+          <div class="sig-dir">DIRECTOR</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PAN + DECLARATION ── -->
+    <div class="row-pandecl">
+      <div class="pan-col">
+        <div class="pan-label">Company's PAN</div>
+        <div class="pan-val">: &nbsp;AAKCD6431B</div>
+      </div>
+      <div class="decl-col">
+        <div class="decl-title">Declaration</div>
+        We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.
+      </div>
+    </div>
+
+  </div><!-- end invoice-body -->
+
+  <div class="footer-note">This is a Computer Generated Invoice</div>
+
+</div>
+</body>
+</html>

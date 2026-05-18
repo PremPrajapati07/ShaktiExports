@@ -1,0 +1,205 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ── Sell Invoice Parties ────────────────────────────────────────────────────
+
+model Party {
+  id        Int      @id @default(autoincrement())
+  name      String
+  address   String
+  city      String
+  state     String
+  stateCode String
+  gstin     String
+  pan       String
+  type      String   // "BilledTo", "ShippedTo", "Both"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  billedInvoices  Invoice[] @relation("BilledTo")
+  shippedInvoices Invoice[] @relation("ShippedTo")
+}
+
+model Declaration {
+  id        Int      @id @default(autoincrement())
+  title     String
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ── Sell Invoice ────────────────────────────────────────────────────────────
+
+model Invoice {
+  id                  Int      @id @default(autoincrement())
+  invoiceNo           String   @unique
+  date                DateTime
+  type                String   // "Intra" (CGST+SGST Within Gujarat) | "Inter" (IGST Outside Gujarat)
+  diamondType         String   // "LabGrown" | "Natural"
+
+  billedToId          Int
+  billedTo            Party    @relation("BilledTo",  fields: [billedToId],  references: [id], onDelete: Cascade)
+  shippedToId         Int
+  shippedTo           Party    @relation("ShippedTo", fields: [shippedToId], references: [id], onDelete: Cascade)
+
+  gstin               String
+  pan                 String
+  terms               String?
+  banker              String?
+  accountNo           String?
+  ifsc                String?
+  districtOriginCode  String?
+
+  taxableAmount       Float
+  cgstTotal           Float    @default(0)
+  sgstTotal           Float    @default(0)
+  igstTotal           Float    @default(0)
+  totalTax            Float
+  amountAfterTax      Float
+  roundOff            Float
+  totalValue          Float
+  totalWords          String
+
+  declarationText     String
+
+  lineItems           LineItem[]
+  createdAt           DateTime @default(now())
+}
+
+model LineItem {
+  id           Int     @id @default(autoincrement())
+  invoiceId    Int
+  invoice      Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  description  String
+  hsn          String
+  quantity     Float
+  rate         Float
+  discount     Float   @default(0)
+  taxableValue Float
+  cgstRate     Float   @default(0)
+  cgstAmount   Float   @default(0)
+  sgstRate     Float   @default(0)
+  sgstAmount   Float   @default(0)
+  igstRate     Float   @default(0)
+  igstAmount   Float   @default(0)
+  total        Float
+}
+
+// ── Purchase Invoice Parties ────────────────────────────────────────────────
+
+model PurchaseSupplier {
+  id        Int      @id @default(autoincrement())
+  name      String
+  address   String
+  city      String
+  state     String
+  stateCode String
+  gstin     String
+  pan       String
+  // Bank details for PDF
+  bankerName  String?
+  accountNo   String?
+  ifsc        String?
+  swiftCode   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  invoices  PurchaseInvoice[] @relation("Supplier")
+}
+
+// PurchaseBuyer is used for BOTH "Ship To (Consignee)" and "Bill To (Buyer)"
+// type field: "ShipTo", "BillTo", "Both"
+model PurchaseBuyer {
+  id        Int      @id @default(autoincrement())
+  name      String
+  address   String
+  city      String
+  state     String
+  stateCode String
+  gstin     String
+  pan       String
+  type      String   @default("Both") // "ShipTo", "BillTo", "Both"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shipToInvoices PurchaseInvoice[] @relation("ShipTo")
+  billToInvoices PurchaseInvoice[] @relation("BillTo")
+}
+
+// ── Purchase Invoice ────────────────────────────────────────────────────────
+
+model PurchaseInvoice {
+  id              Int      @id @default(autoincrement())
+  invoiceNo       String   @unique
+  date            DateTime
+  type            String   // "Intra" (CGST+SGST Within Gujarat) | "Inter" (IGST Outside Gujarat)
+  diamondType     String   // "LabGrown" | "Natural"
+
+  supplierId      Int
+  supplier        PurchaseSupplier @relation("Supplier", fields: [supplierId], references: [id], onDelete: Cascade)
+
+  shipToId        Int
+  shipTo          PurchaseBuyer @relation("ShipTo", fields: [shipToId], references: [id], onDelete: Cascade)
+
+  billToId        Int
+  billTo          PurchaseBuyer @relation("BillTo", fields: [billToId], references: [id], onDelete: Cascade)
+
+  // Supplier details snapshot at time of invoice
+  sellerGstin     String
+  sellerPan       String
+  terms           String?
+  bankerName      String?
+  accountNo       String?
+  ifsc            String?
+  swiftCode       String?
+
+  taxableAmount   Float
+  cgstTotal       Float    @default(0)
+  sgstTotal       Float    @default(0)
+  igstTotal       Float    @default(0)
+  totalTax        Float
+  amountAfterTax  Float
+  roundOff        Float
+  totalValue      Float
+  totalWords      String
+
+  declarationText String
+
+  lineItems       PurchaseLineItem[]
+  createdAt       DateTime @default(now())
+}
+
+model PurchaseLineItem {
+  id           Int             @id @default(autoincrement())
+  invoiceId    Int
+  invoice      PurchaseInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  description  String
+  hsn          String
+  quantity     Float
+  rate         Float
+  discount     Float   @default(0)
+  taxableValue Float
+  cgstRate     Float   @default(0)
+  cgstAmount   Float   @default(0)
+  sgstRate     Float   @default(0)
+  sgstAmount   Float   @default(0)
+  igstRate     Float   @default(0)
+  igstAmount   Float   @default(0)
+  total        Float
+}
+
+// ── Shared Counter ──────────────────────────────────────────────────────────
+
+model Counter {
+  id         String @id  // e.g. "Sell-Intra-LGD", "Buy-Inter-NS"
+  lastNumber Int    @default(0)
+  year       String       // e.g. "26-27"
+}
