@@ -26,10 +26,35 @@ export async function getInvoice(id: number) {
 }
 
 export async function deleteInvoice(id: number) {
-  await prisma.invoice.delete({
-    where: { id }
+  await prisma.$transaction(async (tx) => {
+    const oldInvoice = await tx.invoice.findUnique({
+      where: { id },
+      include: { lineItems: true }
+    })
+    
+    if (oldInvoice) {
+      const totalCarats = oldInvoice.lineItems.reduce((sum, item) => sum + item.quantity, 0)
+      
+      // Reverse stock (add back)
+      await tx.stock.update({
+        where: { diamondType: oldInvoice.diamondType },
+        data: { totalCarats: { increment: totalCarats } }
+      })
+
+      // Delete ledger entry
+      await tx.stockLedger.deleteMany({
+        where: { referenceId: id, transactionType: 'SELL' }
+      })
+    }
+
+    await tx.invoice.delete({
+      where: { id }
+    })
   })
+  
   revalidatePath('/invoices')
+  revalidatePath('/stock')
+  revalidatePath('/')
 }
 
 export async function generateInvoiceNumber(
@@ -86,52 +111,175 @@ export async function createInvoice(data: any) {
   // 1. Generate Invoice Number
   const invoiceNo = await generateInvoiceNumber(data.type, data.diamondType, new Date(data.date))
   
-  // 2. Create the invoice
-  const invoice = await prisma.invoice.create({
-    data: {
-      invoiceNo,
-      date: new Date(data.date),
-      type: data.type,
-      diamondType: data.diamondType,
-      billedToId: data.billedToId,
-      shippedToId: data.shippedToId === -1 ? data.billedToId : data.shippedToId,
-      gstin: data.gstin,
-      pan: data.pan,
-      terms: data.terms,
-      banker: data.banker,
-      accountNo: data.accountNo,
-      ifsc: data.ifsc,
-      districtOriginCode: data.districtOriginCode,
-      taxableAmount: data.taxableAmount,
-      cgstTotal: data.cgstTotal || 0,
-      sgstTotal: data.sgstTotal || 0,
-      igstTotal: data.igstTotal || 0,
-      totalTax: data.totalTax,
-      amountAfterTax: data.amountAfterTax,
-      roundOff: data.roundOff,
-      totalValue: data.totalValue,
-      totalWords: data.totalWords,
-      declarationText: data.declarationText,
-      lineItems: {
-        create: data.lineItems.map((item: any) => ({
-          description: item.description,
-          hsn: item.hsn,
-          quantity: item.quantity,
-          rate: item.rate,
-          discount: item.discount || 0,
-          taxableValue: item.taxableValue,
-          cgstRate: item.cgstRate || 0,
-          cgstAmount: item.cgstAmount || 0,
-          sgstRate: item.sgstRate || 0,
-          sgstAmount: item.sgstAmount || 0,
-          igstRate: item.igstRate || 0,
-          igstAmount: item.igstAmount || 0,
-          total: item.total
-        }))
+  // 2. Create the invoice inside a transaction to maintain stock sync
+  const invoice = await prisma.$transaction(async (tx) => {
+    const inv = await tx.invoice.create({
+      data: {
+        invoiceNo,
+        date: new Date(data.date),
+        type: data.type,
+        diamondType: data.diamondType,
+        billedToId: data.billedToId,
+        shippedToId: data.shippedToId === -1 ? data.billedToId : data.shippedToId,
+        gstin: data.gstin,
+        pan: data.pan,
+        terms: data.terms,
+        banker: data.banker,
+        accountNo: data.accountNo,
+        ifsc: data.ifsc,
+        districtOriginCode: data.districtOriginCode,
+        taxableAmount: data.taxableAmount,
+        cgstTotal: data.cgstTotal || 0,
+        sgstTotal: data.sgstTotal || 0,
+        igstTotal: data.igstTotal || 0,
+        totalTax: data.totalTax,
+        amountAfterTax: data.amountAfterTax,
+        roundOff: data.roundOff,
+        totalValue: data.totalValue,
+        totalWords: data.totalWords,
+        declarationText: data.declarationText,
+        lineItems: {
+          create: data.lineItems.map((item: any) => ({
+            description: item.description,
+            hsn: item.hsn,
+            quantity: item.quantity,
+            rate: item.rate,
+            discount: item.discount || 0,
+            taxableValue: item.taxableValue,
+            cgstRate: item.cgstRate || 0,
+            cgstAmount: item.cgstAmount || 0,
+            sgstRate: item.sgstRate || 0,
+            sgstAmount: item.sgstAmount || 0,
+            igstRate: item.igstRate || 0,
+            igstAmount: item.igstAmount || 0,
+            total: item.total
+          }))
+        }
       }
-    }
+    })
+
+    const totalCarats = data.lineItems.reduce((sum: number, item: any) => sum + Number(item.quantity), 0)
+    const billedToParty = await tx.party.findUnique({ where: { id: data.billedToId } })
+
+    await tx.stockLedger.create({
+      data: {
+        diamondType: data.diamondType,
+        date: new Date(data.date),
+        transactionType: 'SELL',
+        carats: totalCarats,
+        referenceId: inv.id,
+        referenceNo: inv.invoiceNo,
+        partyId: billedToParty?.id,
+        partyName: billedToParty?.name,
+        partyType: 'BUYER'
+      }
+    })
+
+    await tx.stock.upsert({
+      where: { diamondType: data.diamondType },
+      update: { totalCarats: { decrement: totalCarats } },
+      create: { id: data.diamondType, diamondType: data.diamondType, totalCarats: -totalCarats }
+    })
+
+    return inv
   })
   
   revalidatePath('/', 'layout')
+  revalidatePath('/invoices')
+  revalidatePath('/stock')
   return invoice
 }
+
+export async function updateInvoice(id: number, data: any) {
+  const invoice = await prisma.$transaction(async (tx) => {
+    // Revert old stock
+    const oldInvoice = await tx.invoice.findUnique({ where: { id }, include: { lineItems: true } })
+    if (oldInvoice) {
+      const oldTotalCarats = oldInvoice.lineItems.reduce((sum, item) => sum + item.quantity, 0)
+      await tx.stock.update({
+        where: { diamondType: oldInvoice.diamondType },
+        data: { totalCarats: { increment: oldTotalCarats } }
+      })
+      await tx.stockLedger.deleteMany({
+        where: { referenceId: id, transactionType: 'SELL' }
+      })
+    }
+
+    const inv = await tx.invoice.update({
+      where: { id },
+      data: {
+        date: new Date(data.date),
+        type: data.type,
+        diamondType: data.diamondType,
+        billedToId: data.billedToId,
+        shippedToId: data.shippedToId === -1 ? data.billedToId : data.shippedToId,
+        gstin: data.gstin,
+        pan: data.pan,
+        terms: data.terms,
+        banker: data.banker,
+        accountNo: data.accountNo,
+        ifsc: data.ifsc,
+        districtOriginCode: data.districtOriginCode,
+        taxableAmount: data.taxableAmount,
+        cgstTotal: data.cgstTotal || 0,
+        sgstTotal: data.sgstTotal || 0,
+        igstTotal: data.igstTotal || 0,
+        totalTax: data.totalTax,
+        amountAfterTax: data.amountAfterTax,
+        roundOff: data.roundOff,
+        totalValue: data.totalValue,
+        totalWords: data.totalWords,
+        declarationText: data.declarationText,
+        lineItems: {
+          deleteMany: {},
+          create: data.lineItems.map((item: any) => ({
+            description: item.description,
+            hsn: item.hsn,
+            quantity: item.quantity,
+            rate: item.rate,
+            discount: item.discount || 0,
+            taxableValue: item.taxableValue,
+            cgstRate: item.cgstRate || 0,
+            cgstAmount: item.cgstAmount || 0,
+            sgstRate: item.sgstRate || 0,
+            sgstAmount: item.sgstAmount || 0,
+            igstRate: item.igstRate || 0,
+            igstAmount: item.igstAmount || 0,
+            total: item.total
+          }))
+        }
+      }
+    })
+
+    const newTotalCarats = data.lineItems.reduce((sum: number, item: any) => sum + Number(item.quantity), 0)
+    const billedToParty = await tx.party.findUnique({ where: { id: data.billedToId } })
+
+    await tx.stockLedger.create({
+      data: {
+        diamondType: data.diamondType,
+        date: new Date(data.date),
+        transactionType: 'SELL',
+        carats: newTotalCarats,
+        referenceId: inv.id,
+        referenceNo: inv.invoiceNo,
+        partyId: billedToParty?.id,
+        partyName: billedToParty?.name,
+        partyType: 'BUYER'
+      }
+    })
+
+    await tx.stock.upsert({
+      where: { diamondType: data.diamondType },
+      update: { totalCarats: { decrement: newTotalCarats } },
+      create: { id: data.diamondType, diamondType: data.diamondType, totalCarats: -newTotalCarats }
+    })
+
+    return inv
+  })
+
+  revalidatePath('/', 'layout')
+  revalidatePath('/invoices')
+  revalidatePath('/stock')
+  return invoice
+}
+

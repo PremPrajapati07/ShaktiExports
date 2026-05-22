@@ -1,6 +1,6 @@
 import { getParties } from '@/lib/actions/parties'
 export const dynamic = 'force-dynamic'
-import { Plus, Edit2, Trash2 } from 'lucide-react'
+import { Plus, Edit2, Trash2, FileText } from 'lucide-react'
 import Link from 'next/link'
 import { DeletePartyButton } from '@/components/DeleteButtons'
 
@@ -50,6 +50,9 @@ export default async function PartiesPage() {
                   <td className="mono">{party.pan}</td>
                   <td>
                     <div className="actions">
+                      <Link href={`/parties/${party.id}/ledger`} className="action-btn" title="View Ledger">
+                        <FileText size={16} />
+                      </Link>
                       <Link href={`/parties/edit/${party.id}`} className="action-btn edit">
                         <Edit2 size={16} />
                       </Link>

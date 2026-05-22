@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/prisma'
-import { Plus, Edit2, Trash2 } from 'lucide-react'
+import { Plus, Edit2, Trash2, FileText } from 'lucide-react'
 import Link from 'next/link'
 import { DeletePurchasePartyButton } from '@/components/DeleteButtons'
 
@@ -47,6 +47,7 @@ export default async function PurchaseSuppliersPage() {
                   <td>{s.state} ({s.stateCode})</td>
                   <td>
                     <div className="action-btns">
+                      <Link href={`/purchase-suppliers/${s.id}/ledger`} className="icon-btn" title="View Ledger"><FileText size={16} /></Link>
                       <Link href={`/purchase-suppliers/edit/${s.id}`} className="icon-btn"><Edit2 size={16} /></Link>
                       <DeletePurchasePartyButton id={s.id} role="supplier" />
                     </div>

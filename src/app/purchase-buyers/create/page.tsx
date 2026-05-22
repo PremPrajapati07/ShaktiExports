@@ -10,7 +10,7 @@ export default function CreateBuyerPage() {
           <p className="subtitle">Add the entity that purchases or receives the diamonds</p>
         </div>
       </header>
-      <PurchasePartyForm action={createPurchaseBuyer} redirectTo="/purchase-buyers" label="Buyer" role="buyer" />
+      <PurchasePartyForm redirectTo="/purchase-buyers" label="Buyer" role="buyer" />
     </div>
   )
 }

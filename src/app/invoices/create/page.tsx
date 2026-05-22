@@ -1,5 +1,6 @@
 import { InvoiceForm } from '@/components/InvoiceForm'
 import { prisma } from '@/lib/prisma'
+import { getProfile } from '@/lib/actions/profile'
 export const dynamic = 'force-dynamic'
 
 export default async function CreateInvoicePage() {
@@ -11,6 +12,8 @@ export default async function CreateInvoicePage() {
     orderBy: { title: 'asc' }
   })
 
+  const profile = await getProfile()
+
   return (
     <div className="animate-fade-in">
       <header className="page-header">
@@ -18,7 +21,7 @@ export default async function CreateInvoicePage() {
         <p className="subtitle">Follow the steps to generate a GST compliant invoice</p>
       </header>
       
-      <InvoiceForm parties={parties} declarations={declarations} />
+      <InvoiceForm parties={parties} declarations={declarations} initialProfile={profile} />
 
     </div>
   )

@@ -1,8 +1,15 @@
 import { PurchaseInvoiceForm } from '@/components/PurchaseInvoiceForm'
+import { notFound } from 'next/navigation'
+import { getPurchaseInvoice } from '@/lib/actions/purchase-invoices'
 import { getPurchaseBuyers, getSuppliers } from '@/lib/actions/purchase-parties'
 import { prisma } from '@/lib/prisma'
 
-export default async function CreatePurchaseInvoicePage() {
+export default async function EditPurchaseInvoicePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const invoiceId = parseInt(id)
+  const invoice = await getPurchaseInvoice(invoiceId)
+  if (!invoice) notFound()
+
   const [suppliers, buyers, declarations] = await Promise.all([
     getSuppliers(),
     getPurchaseBuyers(),
@@ -13,14 +20,16 @@ export default async function CreatePurchaseInvoicePage() {
     <div className="animate-fade-in">
       <header className="page-header">
         <div className="header-content">
-          <h1>Create Purchase Invoice</h1>
-          <p className="subtitle">Record a diamond purchase with full GST details</p>
+          <h1>Edit Purchase Invoice: {invoice.invoiceNo}</h1>
+          <p className="subtitle">Update recorded diamond purchase details</p>
         </div>
       </header>
       <PurchaseInvoiceForm
         suppliers={suppliers}
         buyers={buyers}
         declarations={declarations}
+        initialData={invoice}
+        invoiceId={invoiceId}
       />
     </div>
   )

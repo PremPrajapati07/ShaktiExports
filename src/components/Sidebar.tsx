@@ -12,9 +12,13 @@ import {
   Diamond,
   ShoppingCart,
   Store,
-  Package
+  Package,
+  Settings,
+  Menu,
+  X
 } from 'lucide-react'
 import { clsx } from 'clsx'
+import { useState, useEffect } from 'react'
 
 const sellItems = [
   { name: 'Manage Parties', href: '/parties', icon: Users },
@@ -33,26 +37,74 @@ const purchaseItems = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const [isOpen, setIsOpen] = useState(false)
 
-  const isActive = (href: string) =>
-    href === '/' ? pathname === '/' : pathname.startsWith(href)
+  // Close sidebar on route change on mobile
+  useEffect(() => {
+    setIsOpen(false)
+  }, [pathname])
+
+  const isActive = (href: string) => {
+    if (href === '/') return pathname === '/'
+    if (href === '/invoices') {
+      return pathname === '/invoices' || pathname.startsWith('/invoices/view') || pathname.startsWith('/invoices/edit')
+    }
+    if (href === '/purchase-invoices') {
+      return pathname === '/purchase-invoices' || pathname.startsWith('/purchase-invoices/view') || pathname.startsWith('/purchase-invoices/edit')
+    }
+    return pathname.startsWith(href)
+  }
 
   return (
-    <aside className="sidebar">
-      <div className="sidebar-header">
-        <div className="logo">
-          <Diamond className="logo-icon" size={32} />
-          <div className="logo-text">
-            <span className="brand-name">Shakti Exports</span>
-            <span className="brand-tagline">Diamond Traders</span>
-          </div>
+    <>
+      <header className="mobile-header">
+        <button 
+          className="mobile-menu-btn" 
+          onClick={() => setIsOpen(true)}
+          aria-label="Open Menu"
+        >
+          <Menu size={24} />
+        </button>
+        <div className="mobile-logo">
+          <Diamond className="logo-icon" size={24} />
+          <span className="mobile-brand-name">Shakti Exports</span>
         </div>
-      </div>
+      </header>
+
+      {isOpen && (
+        <div className="sidebar-overlay" onClick={() => setIsOpen(false)} />
+      )}
+
+      <aside className={clsx("sidebar", isOpen && "sidebar-open")}>
+        <div className="sidebar-header">
+          <div className="logo">
+            <Diamond className="logo-icon" size={32} />
+            <div className="logo-text">
+              <span className="brand-name">Shakti Exports</span>
+              <span className="brand-tagline">Diamond Traders</span>
+            </div>
+          </div>
+          <button 
+            className="sidebar-close-btn" 
+            onClick={() => setIsOpen(false)}
+            aria-label="Close Menu"
+          >
+            <X size={20} />
+          </button>
+        </div>
 
       <nav className="sidebar-nav">
         <Link href="/" className={clsx('nav-link', pathname === '/' && 'active')}>
           <LayoutDashboard size={20} />
           <span>Dashboard</span>
+        </Link>
+        <Link href="/stock" className={clsx('nav-link', pathname.startsWith('/stock') && 'active')}>
+          <Package size={20} />
+          <span>Stock & Inventory</span>
+        </Link>
+        <Link href="/profile" className={clsx('nav-link', pathname.startsWith('/profile') && 'active')}>
+          <Settings size={20} />
+          <span>Company Profile</span>
         </Link>
 
         <div className="nav-section-title">Sell Invoices</div>
@@ -80,5 +132,6 @@ export function Sidebar() {
         ))}
       </nav>
     </aside>
+    </>
   )
 }

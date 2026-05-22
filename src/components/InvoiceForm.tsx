@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Trash2, Save, Download, ChevronRight, ChevronLeft } from 'lucide-react'
-import { createInvoice } from '@/lib/actions/invoices'
+import { createInvoice, updateInvoice } from '@/lib/actions/invoices'
 import { format } from 'date-fns'
 import { toWords } from 'number-to-words'
 
@@ -42,77 +42,170 @@ interface LineItem {
   total: number
 }
 
-export function InvoiceForm({ parties, declarations }: { parties: Party[], declarations: Declaration[] }) {
+export function InvoiceForm({ parties, declarations, initialProfile, initialData }: { parties: Party[], declarations: Declaration[], initialProfile?: any, initialData?: any }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState(1)
+  const [hasRestoredDraft, setHasRestoredDraft] = useState(false)
 
   // Form State
   const [formData, setFormData] = useState({
-    date: '', // Initialize empty to avoid hydration mismatch
-    type: 'Intra' as 'Intra' | 'Inter',
-    diamondType: 'LabGrown' as 'LabGrown' | 'Natural',
-    billedToId: 0,
-    shippedToId: 0,
-    gstin: '24AAAAA0000A1Z5', // Shakti Exports default
-    pan: 'ABCDE1234F',         // Shakti Exports default
-    terms: 'CREDIT',
-    banker: 'STATE BANK OF INDIA',
-    accountNo: '12345678901',
-    ifsc: 'SBIN0000001',
-    districtOriginCode: '24',
-    declarationText: '',
+    date: initialData ? format(new Date(initialData.date), 'yyyy-MM-dd') : '',
+    type: initialData?.type || ('Intra' as 'Intra' | 'Inter'),
+    diamondType: initialData?.diamondType || ('LabGrown' as 'LabGrown' | 'Natural'),
+    billedToId: initialData?.billedToId || 0,
+    shippedToId: initialData?.shippedToId || 0,
+    gstin: initialData?.gstin || initialProfile?.gstin || '24AAAAA0000A1Z5',
+    pan: initialData?.pan || initialProfile?.pan || 'ABCDE1234F',
+    terms: initialData?.terms || initialProfile?.terms || 'CREDIT',
+    banker: initialData?.banker || initialProfile?.banker || 'STATE BANK of INDIA',
+    accountNo: initialData?.accountNo || initialProfile?.accountNo || '12345678901',
+    ifsc: initialData?.ifsc || initialProfile?.ifsc || 'SBIN0000001',
+    districtOriginCode: initialData?.districtOriginCode || initialProfile?.districtOriginCode || '24',
+    declarationText: initialData?.declarationText || '',
   })
 
   const [lineItems, setLineItems] = useState<LineItem[]>([])
 
   // Summary State
   const [summary, setSummary] = useState({
-    taxableAmount: 0,
-    cgstTotal: 0,
-    sgstTotal: 0,
-    igstTotal: 0,
-    totalTax: 0,
-    amountAfterTax: 0,
-    roundOff: 0,
-    totalValue: 0,
-    totalWords: ''
+    taxableAmount: initialData?.taxableAmount || 0,
+    cgstTotal: initialData?.cgstTotal || 0,
+    sgstTotal: initialData?.sgstTotal || 0,
+    igstTotal: initialData?.igstTotal || 0,
+    totalTax: initialData?.totalTax || 0,
+    amountAfterTax: initialData?.amountAfterTax || 0,
+    roundOff: initialData?.roundOff || 0,
+    totalValue: initialData?.totalValue || 0,
+    totalWords: initialData?.totalWords || ''
   })
 
   // Set initial state only on client to avoid hydration mismatch
   useEffect(() => {
-    setFormData(prev => ({
-      ...prev,
-      date: format(new Date(), 'yyyy-MM-dd')
-    }))
-
-    setLineItems([
-      {
-        id: Math.random().toString(),
-        description: 'Cut & Polished Diamond (CVD)',
-        hsn: '7104',
-        quantity: 0,
-        rate: 0,
-        discount: 0,
-        taxableValue: 0,
-        cgstRate: 0.75,
-        cgstAmount: 0,
-        sgstRate: 0.75,
-        sgstAmount: 0,
-        igstRate: 1.5,
-        igstAmount: 0,
-        total: 0
+    if (!initialData) {
+      const savedDraft = localStorage.getItem('sell-invoice-draft')
+      if (savedDraft) {
+        try {
+          const { formData: savedFormData, lineItems: savedLineItems, step: savedStep } = JSON.parse(savedDraft)
+          if (savedFormData) setFormData(savedFormData)
+          if (savedLineItems) setLineItems(savedLineItems)
+          if (savedStep) setStep(savedStep)
+          setHasRestoredDraft(true)
+          return
+        } catch (e) {
+          console.error('Failed to parse draft', e)
+        }
       }
-    ])
-  }, [])
 
-  // Watch for type/diamond type changes
+      setFormData(prev => ({
+        ...prev,
+        date: format(new Date(), 'yyyy-MM-dd')
+      }))
+
+      setLineItems([
+        {
+          id: Math.random().toString(),
+          description: 'Cut & Polished Diamond (CVD)',
+          hsn: '71049120',
+          quantity: 0,
+          rate: 0,
+          discount: 0,
+          taxableValue: 0,
+          cgstRate: 0.75,
+          cgstAmount: 0,
+          sgstRate: 0.75,
+          sgstAmount: 0,
+          igstRate: 1.5,
+          igstAmount: 0,
+          total: 0
+        }
+      ])
+    } else {
+      setLineItems(initialData.lineItems.map((item: any) => ({
+        id: Math.random().toString(),
+        description: item.description,
+        hsn: item.hsn,
+        quantity: item.quantity,
+        rate: item.rate,
+        discount: item.discount,
+        taxableValue: item.taxableValue,
+        cgstRate: item.cgstRate,
+        cgstAmount: item.cgstAmount,
+        sgstRate: item.sgstRate,
+        sgstAmount: item.sgstAmount,
+        igstRate: item.igstRate,
+        igstAmount: item.igstAmount,
+        total: item.total
+      })))
+    }
+  }, [initialData])
+
+  // Save draft to localStorage on changes
   useEffect(() => {
-    const desc = formData.diamondType === 'LabGrown' 
-      ? 'Cut & Polished Diamond (CVD)' 
-      : 'Cut & Polished Diamond'
-    
-    setLineItems(prev => prev.map(item => ({ ...item, description: desc })))
+    if (!initialData && lineItems.length > 0) {
+      localStorage.setItem('sell-invoice-draft', JSON.stringify({
+        formData,
+        lineItems,
+        step
+      }))
+    }
+  }, [formData, lineItems, step, initialData])
+
+  const handleResetForm = () => {
+    if (confirm('Are you sure you want to reset the form? All current progress will be lost.')) {
+      localStorage.removeItem('sell-invoice-draft')
+      setHasRestoredDraft(false)
+      setStep(1)
+      setFormData({
+        date: format(new Date(), 'yyyy-MM-dd'),
+        type: 'Intra',
+        diamondType: 'LabGrown',
+        billedToId: 0,
+        shippedToId: 0,
+        gstin: initialProfile?.gstin || '24AAAAA0000A1Z5',
+        pan: initialProfile?.pan || 'ABCDE1234F',
+        terms: initialProfile?.terms || 'CREDIT',
+        banker: initialProfile?.banker || 'STATE BANK OF INDIA',
+        accountNo: initialProfile?.accountNo || '12345678901',
+        ifsc: initialProfile?.ifsc || 'SBIN0000001',
+        districtOriginCode: initialProfile?.districtOriginCode || '24',
+        declarationText: '',
+      })
+      setLineItems([
+        {
+          id: Math.random().toString(),
+          description: 'Cut & Polished Diamond (CVD)',
+          hsn: '71049120',
+          quantity: 0,
+          rate: 0,
+          discount: 0,
+          taxableValue: 0,
+          cgstRate: 0.75,
+          cgstAmount: 0,
+          sgstRate: 0.75,
+          sgstAmount: 0,
+          igstRate: 1.5,
+          igstAmount: 0,
+          total: 0
+        }
+      ])
+    }
+  }
+
+  // Watch for type/diamond type changes (using ref to run only on user updates)
+  const lastDiamondTypeRef = useRef(formData.diamondType)
+  useEffect(() => {
+    if (lastDiamondTypeRef.current !== formData.diamondType) {
+      lastDiamondTypeRef.current = formData.diamondType
+      const desc = formData.diamondType === 'LabGrown' 
+        ? 'Cut & Polished Diamond (CVD)' 
+        : 'Cut & Polished Diamond'
+      const hsn = formData.diamondType === 'LabGrown'
+        ? '71049120'
+        : '71023910'
+      
+      setLineItems(prev => prev.map(item => ({ ...item, description: desc, hsn })))
+    }
   }, [formData.diamondType])
 
   // Watch for calculations
@@ -229,7 +322,13 @@ export function InvoiceForm({ parties, declarations }: { parties: Party[], decla
         ...summary,
         lineItems
       }
-      const res = await createInvoice(payload)
+      let res;
+      if (initialData) {
+        res = await updateInvoice(initialData.id, payload)
+      } else {
+        res = await createInvoice(payload)
+        localStorage.removeItem('sell-invoice-draft')
+      }
       router.push(`/invoices/view/${res.id}`)
     } catch (error) {
       alert('Failed to save invoice')
@@ -254,6 +353,41 @@ export function InvoiceForm({ parties, declarations }: { parties: Party[], decla
 
   return (
     <div className="invoice-form">
+      {hasRestoredDraft && (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          background: 'rgba(59, 130, 246, 0.05)',
+          border: '1px solid rgba(59, 130, 246, 0.2)',
+          color: '#3b82f6',
+          padding: '0.75rem 1rem',
+          borderRadius: '0.5rem',
+          marginBottom: '1.5rem',
+          fontSize: '0.875rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span>📝</span>
+            <span>Restored your unsaved draft. You can continue or start fresh.</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleResetForm}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#ef4444',
+              cursor: 'pointer',
+              fontWeight: 600,
+              textDecoration: 'underline',
+              padding: 0
+            }}
+          >
+            Reset Form
+          </button>
+        </div>
+      )}
+
       {/* History Status Header */}
       {step > 1 && (
         <div className="step-history-bar">

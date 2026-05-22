@@ -12,6 +12,7 @@ import {
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { format, startOfMonth } from 'date-fns'
+import { DashboardExport } from '@/components/DashboardExport'
 
 async function getStats() {
   const [
@@ -34,6 +35,7 @@ async function getStats() {
 
   const sellValue = sellValueRaw._sum.totalValue || 0
   const purchaseValue = purchaseValueRaw._sum.totalValue || 0
+  const reconciledValue = sellValue - purchaseValue
 
   return {
     totalSellInvoices,
@@ -41,22 +43,25 @@ async function getStats() {
     sellValue,
     purchaseValue,
     totalValue: sellValue + purchaseValue,
+    reconciledValue,
     invoicesThisMonth: sellInvoicesThisMonth + purchaseThisMonth,
     totalParties,
   }
 }
 
 async function getRecentInvoices() {
-  const [sellInvoices, purchaseInvoices] = await Promise.all([
+  const [sellInvoices, purchaseInvoices, allSellInvoices, allPurchaseInvoices] = await Promise.all([
     prisma.invoice.findMany({ take: 4, orderBy: { createdAt: 'desc' }, include: { billedTo: true } }),
     prisma.purchaseInvoice.findMany({ take: 4, orderBy: { createdAt: 'desc' }, include: { supplier: true } }),
+    prisma.invoice.findMany({ orderBy: { createdAt: 'desc' }, include: { billedTo: true, shippedTo: true } }),
+    prisma.purchaseInvoice.findMany({ orderBy: { createdAt: 'desc' }, include: { supplier: true, shipTo: true, billTo: true } }),
   ])
-  return { sellInvoices, purchaseInvoices }
+  return { sellInvoices, purchaseInvoices, allSellInvoices, allPurchaseInvoices }
 }
 
 export default async function Dashboard() {
   const stats = await getStats()
-  const { sellInvoices, purchaseInvoices } = await getRecentInvoices()
+  const { sellInvoices, purchaseInvoices, allSellInvoices, allPurchaseInvoices } = await getRecentInvoices()
 
   const cards = [
     { name: 'Total Sell Invoices', value: stats.totalSellInvoices, icon: FileText, color: 'blue' },
@@ -96,8 +101,8 @@ export default async function Dashboard() {
         ))}
       </div>
 
-      {/* Second row: sell vs purchase value */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+      {/* Second row: sell vs purchase vs reconciled value */}
+      <div className="stats-grid" style={{ marginBottom: '2rem' }}>
         <div className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <div className="icon-container blue"><IndianRupee size={20} /></div>
           <div>
@@ -112,7 +117,18 @@ export default async function Dashboard() {
             <p style={{ fontSize: '1.25rem', fontWeight: 700 }}>₹{stats.purchaseValue.toLocaleString()}</p>
           </div>
         </div>
+        <div className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div className={`icon-container ${stats.reconciledValue >= 0 ? 'green' : 'orange'}`}><TrendingUp size={20} /></div>
+          <div>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Reconciled Balance (Net)</p>
+            <p style={{ fontSize: '1.25rem', fontWeight: 700, color: stats.reconciledValue >= 0 ? 'var(--primary)' : '#e11d48' }}>
+              ₹{stats.reconciledValue.toLocaleString()}
+            </p>
+          </div>
+        </div>
       </div>
+
+      <DashboardExport sellInvoices={allSellInvoices} purchaseInvoices={allPurchaseInvoices} />
 
       <div className="dashboard-grid">
         {/* Recent Sell Invoices */}

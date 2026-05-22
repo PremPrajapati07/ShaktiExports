@@ -18,7 +18,6 @@ export default async function EditSupplierPage({ params }: { params: Promise<{ i
       </header>
       <PurchasePartyForm
         initialData={supplier}
-        action={(data) => updateSupplier(supplier.id, data)}
         redirectTo="/purchase-suppliers"
         label="Supplier"
         role="supplier"

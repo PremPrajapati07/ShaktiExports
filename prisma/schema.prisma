@@ -34,6 +34,23 @@ model Declaration {
   updatedAt DateTime @updatedAt
 }
 
+// ── Company Profile ─────────────────────────────────────────────────────────
+
+model Profile {
+  id                 Int      @id @default(1)
+  companyName        String   @default("SHAKTI EXPORTS")
+  gstin              String   @default("24AAAAA0000A1Z5")
+  pan                String   @default("ABCDE1234F")
+  terms              String   @default("CREDIT")
+  banker             String   @default("STATE BANK OF INDIA")
+  accountNo          String   @default("12345678901")
+  ifsc               String   @default("SBIN0000001")
+  swiftCode          String   @default("")
+  districtOriginCode String   @default("24")
+  updatedAt          DateTime @updatedAt
+}
+
+
 // ── Sell Invoice ────────────────────────────────────────────────────────────
 
 model Invoice {
@@ -126,6 +143,7 @@ model PurchaseBuyer {
   gstin     String
   pan       String
   type      String   @default("Both") // "ShipTo", "BillTo", "Both"
+  isCompany Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -203,3 +221,35 @@ model Counter {
   lastNumber Int    @default(0)
   year       String       // e.g. "26-27"
 }
+
+// ── Stock Management ────────────────────────────────────────────────────────
+
+model Stock {
+  id          String   @id // "LabGrown" or "Natural"
+  diamondType String   @unique // "LabGrown" | "Natural"
+  totalCarats Float    @default(0)
+  updatedAt   DateTime @updatedAt
+}
+
+model StockLedger {
+  id              Int      @id @default(autoincrement())
+  diamondType     String   // "LabGrown" | "Natural"
+  date            DateTime
+  transactionType String   // "PURCHASE" | "SELL" | "MANUAL_ADJUSTMENT"
+  carats          Float
+  
+  // Reference
+  referenceId     Int?     // Invoice ID or PurchaseInvoice ID
+  referenceNo     String?  // Invoice Number or "Manual Adj"
+  
+  // Party Reference
+  partyId         Int?     // Supplier ID or Buyer ID
+  partyName       String?
+  partyType       String?  // "SUPPLIER" | "BUYER" | "MANUAL"
+  
+  remarks         String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+

@@ -18,7 +18,6 @@ export default async function EditBuyerPage({ params }: { params: Promise<{ id: 
       </header>
       <PurchasePartyForm
         initialData={buyer}
-        action={(data) => updatePurchaseBuyer(buyer.id, data)}
         redirectTo="/purchase-buyers"
         label="Buyer"
         role="buyer"

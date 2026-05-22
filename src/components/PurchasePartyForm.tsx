@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createSupplier, updateSupplier, createPurchaseBuyer, updatePurchaseBuyer } from '@/lib/actions/purchase-parties'
 
 const baseFields = [
   { key: 'name', label: 'Name', required: true },
@@ -28,7 +29,7 @@ export function PurchasePartyForm({
   role
 }: {
   initialData?: any
-  action: (data: any) => Promise<void>
+  action?: any
   redirectTo: string
   label: string
   role?: 'supplier' | 'buyer'
@@ -54,7 +55,19 @@ export function PurchasePartyForm({
     e.preventDefault()
     setLoading(true)
     try {
-      await action(data)
+      if (role === 'supplier') {
+        if (initialData?.id) {
+          await updateSupplier(initialData.id, data)
+        } else {
+          await createSupplier(data)
+        }
+      } else {
+        if (initialData?.id) {
+          await updatePurchaseBuyer(initialData.id, data)
+        } else {
+          await createPurchaseBuyer(data)
+        }
+      }
       router.push(redirectTo)
     } catch {
       alert('Failed to save')
@@ -64,6 +77,31 @@ export function PurchasePartyForm({
 
   return (
     <form onSubmit={handleSubmit} className="glass-card">
+      {initialData?.isCompany && (
+        <div style={{
+          background: 'rgba(59, 130, 246, 0.05)',
+          border: '1px solid rgba(59, 130, 246, 0.2)',
+          color: '#3b82f6',
+          padding: '1rem',
+          borderRadius: '0.5rem',
+          marginBottom: '1.5rem',
+          fontSize: '0.875rem',
+          lineHeight: '1.4',
+          display: 'flex',
+          gap: '0.5rem',
+          alignItems: 'flex-start'
+        }}>
+          <span>💡</span>
+          <div>
+            <strong>Company Default Profile</strong>: Name, GSTIN, and PAN are managed under your{' '}
+            <a href="/profile" style={{ textDecoration: 'underline', fontWeight: 600, color: '#3b82f6' }}>
+              Company Profile
+            </a>.
+            You can customize the address and buyer type below.
+          </div>
+        </div>
+      )}
+
       <div className="form-grid">
         {baseFields.map(f => (
           <div key={f.key} className="form-group">
@@ -82,6 +120,7 @@ export function PurchasePartyForm({
                 className="form-input"
                 value={(data as any)[f.key]}
                 required={f.required}
+                disabled={initialData?.isCompany && ['name', 'gstin', 'pan'].includes(f.key)}
                 onChange={e => setData({ ...data, [f.key]: e.target.value })}
               />
             )}

@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Trash2, Save, ChevronRight, ChevronLeft } from 'lucide-react'
-import { createPurchaseInvoice } from '@/lib/actions/purchase-invoices'
+import { createPurchaseInvoice, updatePurchaseInvoice } from '@/lib/actions/purchase-invoices'
 import { format } from 'date-fns'
 import { toWords } from 'number-to-words'
 
@@ -32,50 +32,118 @@ const stepLabels: Record<number, string> = {
 }
 
 export function PurchaseInvoiceForm({
-  suppliers, buyers, declarations
+  suppliers, buyers, declarations, initialData, invoiceId
 }: {
   suppliers: PurchaseSupplier[]
   buyers: PurchaseBuyer[]
   declarations: Declaration[]
+  initialData?: any
+  invoiceId?: number
 }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState(1)
+  const [hasRestoredDraft, setHasRestoredDraft] = useState(false)
 
   const [formData, setFormData] = useState({
-    date: '',
-    type: 'Intra' as 'Intra' | 'Inter',
-    diamondType: 'LabGrown' as 'LabGrown' | 'Natural',
-    supplierId: 0,
-    shipToId: 0,
-    billToId: 0,
-    sellerGstin: '',
-    sellerPan: '',
-    terms: 'CREDIT',
-    bankerName: '',
-    accountNo: '',
-    ifsc: '',
-    swiftCode: '',
-    declarationText: 'We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.',
+    date: initialData?.date ? format(new Date(initialData.date), 'yyyy-MM-dd') : '',
+    type: (initialData?.type || 'Intra') as 'Intra' | 'Inter',
+    diamondType: (initialData?.diamondType || 'LabGrown') as 'LabGrown' | 'Natural',
+    supplierId: initialData?.supplierId || 0,
+    shipToId: initialData?.shipToId || 0,
+    billToId: initialData?.billToId || 0,
+    sellerGstin: initialData?.sellerGstin || '',
+    sellerPan: initialData?.sellerPan || '',
+    terms: initialData?.terms || 'CREDIT',
+    bankerName: initialData?.bankerName || '',
+    accountNo: initialData?.accountNo || '',
+    ifsc: initialData?.ifsc || '',
+    swiftCode: initialData?.swiftCode || '',
+    declarationText: initialData?.declarationText || 'We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.',
   })
 
   const [lineItems, setLineItems] = useState<LineItem[]>([])
   const [summary, setSummary] = useState({
-    taxableAmount: 0, cgstTotal: 0, sgstTotal: 0, igstTotal: 0,
-    totalTax: 0, amountAfterTax: 0, roundOff: 0, totalValue: 0, totalWords: ''
+    taxableAmount: initialData?.taxableAmount || 0, cgstTotal: initialData?.cgstTotal || 0, sgstTotal: initialData?.sgstTotal || 0, igstTotal: initialData?.igstTotal || 0,
+    totalTax: initialData?.totalTax || 0, amountAfterTax: initialData?.amountAfterTax || 0, roundOff: initialData?.roundOff || 0, totalValue: initialData?.totalValue || 0, totalWords: initialData?.totalWords || ''
   })
 
-  // Init date + first line item on client
+  const lastDiamondTypeRef = useRef(formData.diamondType)
+
+  // Init date + first line item on client if not editing, check draft
   useEffect(() => {
-    setFormData(prev => ({ ...prev, date: format(new Date(), 'yyyy-MM-dd') }))
-    setLineItems([{
-      id: Math.random().toString(),
-      description: 'LABORATORY GROWN CUT & POLISH DIAMOND',
-      hsn: '71049120', quantity: 0, rate: 0, discount: 0,
-      taxableValue: 0, cgstRate: 0.75, cgstAmount: 0,
-      sgstRate: 0.75, sgstAmount: 0, igstRate: 1.5, igstAmount: 0, total: 0
-    }])
-  }, [])
+    if (!initialData) {
+      const savedDraft = localStorage.getItem('purchase-invoice-draft')
+      if (savedDraft) {
+        try {
+          const { formData: savedFormData, lineItems: savedLineItems, step: savedStep } = JSON.parse(savedDraft)
+          if (savedFormData) {
+            setFormData(savedFormData)
+            lastDiamondTypeRef.current = savedFormData.diamondType
+          }
+          if (savedLineItems) setLineItems(savedLineItems)
+          if (savedStep) setStep(savedStep)
+          setHasRestoredDraft(true)
+          return
+        } catch (e) {
+          console.error('Failed to parse draft', e)
+        }
+      }
+
+      setFormData(prev => ({ ...prev, date: format(new Date(), 'yyyy-MM-dd') }))
+      setLineItems([{
+        id: Math.random().toString(),
+        description: 'LABORATORY GROWN CUT & POLISH DIAMOND',
+        hsn: '71049120', quantity: 0, rate: 0, discount: 0,
+        taxableValue: 0, cgstRate: 0.75, cgstAmount: 0,
+        sgstRate: 0.75, sgstAmount: 0, igstRate: 1.5, igstAmount: 0, total: 0
+      }])
+    } else {
+      setLineItems(initialData?.lineItems || [])
+    }
+  }, [initialData])
+
+  // Save draft to localStorage on changes
+  useEffect(() => {
+    if (!initialData && lineItems.length > 0) {
+      localStorage.setItem('purchase-invoice-draft', JSON.stringify({
+        formData,
+        lineItems,
+        step
+      }))
+    }
+  }, [formData, lineItems, step, initialData])
+
+  const handleResetForm = () => {
+    if (confirm('Are you sure you want to reset the form? All current progress will be lost.')) {
+      localStorage.removeItem('purchase-invoice-draft')
+      setHasRestoredDraft(false)
+      setStep(1)
+      setFormData({
+        date: format(new Date(), 'yyyy-MM-dd'),
+        type: 'Intra',
+        diamondType: 'LabGrown',
+        supplierId: 0,
+        shipToId: 0,
+        billToId: 0,
+        sellerGstin: '',
+        sellerPan: '',
+        terms: 'CREDIT',
+        bankerName: '',
+        accountNo: '',
+        ifsc: '',
+        swiftCode: '',
+        declarationText: 'We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.',
+      })
+      setLineItems([{
+        id: Math.random().toString(),
+        description: 'LABORATORY GROWN CUT & POLISH DIAMOND',
+        hsn: '71049120', quantity: 0, rate: 0, discount: 0,
+        taxableValue: 0, cgstRate: 0.75, cgstAmount: 0,
+        sgstRate: 0.75, sgstAmount: 0, igstRate: 1.5, igstAmount: 0, total: 0
+      }])
+    }
+  }
 
   // Auto-fill seller GSTIN/PAN/Bank from selected supplier
   useEffect(() => {
@@ -97,10 +165,13 @@ export function PurchaseInvoiceForm({
 
   // Update description on diamond type change
   useEffect(() => {
-    const desc = formData.diamondType === 'LabGrown'
-      ? 'LABORATORY GROWN CUT & POLISH DIAMOND'
-      : 'CUT & POLISHED NATURAL DIAMOND'
-    setLineItems(prev => prev.map(item => ({ ...item, description: desc })))
+    if (lastDiamondTypeRef.current !== formData.diamondType) {
+      lastDiamondTypeRef.current = formData.diamondType
+      const desc = formData.diamondType === 'LabGrown'
+        ? 'LABORATORY GROWN CUT & POLISH DIAMOND'
+        : 'CUT & POLISHED NATURAL DIAMOND'
+      setLineItems(prev => prev.map(item => ({ ...item, description: desc })))
+    }
   }, [formData.diamondType])
 
   // Calculation
@@ -164,8 +235,14 @@ export function PurchaseInvoiceForm({
     if (!formData.shipToId) { alert('Please select a consignee (Ship To)'); setLoading(false); return }
     if (!formData.billToId) { alert('Please select a buyer (Bill To)'); setLoading(false); return }
     try {
-      const res = await createPurchaseInvoice({ ...formData, ...summary, lineItems })
-      router.push(`/purchase-invoices/view/${res.id}`)
+      if (invoiceId) {
+        await updatePurchaseInvoice(invoiceId, { ...formData, ...summary, lineItems })
+        router.push(`/purchase-invoices/view/${invoiceId}`)
+      } else {
+        const res = await createPurchaseInvoice({ ...formData, ...summary, lineItems })
+        localStorage.removeItem('purchase-invoice-draft')
+        router.push(`/purchase-invoices/view/${res.id}`)
+      }
     } catch {
       alert('Failed to save purchase invoice')
       setLoading(false)
@@ -194,6 +271,41 @@ export function PurchaseInvoiceForm({
 
   return (
     <div className="invoice-form">
+      {hasRestoredDraft && (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          background: 'rgba(59, 130, 246, 0.05)',
+          border: '1px solid rgba(59, 130, 246, 0.2)',
+          color: '#3b82f6',
+          padding: '0.75rem 1rem',
+          borderRadius: '0.5rem',
+          marginBottom: '1.5rem',
+          fontSize: '0.875rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span>📝</span>
+            <span>Restored your unsaved draft. You can continue or start fresh.</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleResetForm}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#ef4444',
+              cursor: 'pointer',
+              fontWeight: 600,
+              textDecoration: 'underline',
+              padding: 0
+            }}
+          >
+            Reset Form
+          </button>
+        </div>
+      )}
+
       {/* Step History Breadcrumb */}
       {step > 1 && (
         <div className="step-history-bar">

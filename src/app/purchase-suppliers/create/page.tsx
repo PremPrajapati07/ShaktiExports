@@ -10,7 +10,7 @@ export default function CreateSupplierPage() {
           <p className="subtitle">Add a company/person you purchase from</p>
         </div>
       </header>
-      <PurchasePartyForm action={createSupplier} redirectTo="/purchase-suppliers" label="Supplier" role="supplier" />
+      <PurchasePartyForm redirectTo="/purchase-suppliers" label="Supplier" role="supplier" />
     </div>
   )
 }

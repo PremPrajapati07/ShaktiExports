@@ -2,8 +2,7 @@ import { getPurchaseInvoice } from '@/lib/actions/purchase-invoices'
 import { notFound } from 'next/navigation'
 import { format } from 'date-fns'
 import Link from 'next/link'
-import { ChevronLeft } from 'lucide-react'
-import { PurchasePDFButton } from '@/components/PDFButtons'
+import { ChevronLeft, Pencil } from 'lucide-react'
 
 export default async function PurchaseInvoiceViewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -27,13 +26,16 @@ export default async function PurchaseInvoiceViewPage({ params }: { params: Prom
           <Link href="/purchase-invoices" className="btn btn-outline">
             <ChevronLeft size={20} /> Back
           </Link>
-          <PurchasePDFButton invoice={invoice} />
+          <Link href={`/purchase-invoices/edit/${invoice.id}`} className="btn btn-primary">
+            <Pencil size={18} /> Edit
+          </Link>
         </div>
       </header>
 
+
       <div className="glass-card" style={{ padding: '2rem' }}>
         {/* Supplier + Ship To + Bill To */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+        <div className="stats-grid" style={{ marginBottom: '2rem' }}>
           <div>
             <h3 style={{ marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Supplier (From Whom)</h3>
             <p style={{ fontWeight: 700, fontSize: '1rem' }}>{invoice.supplier.name}</p>
