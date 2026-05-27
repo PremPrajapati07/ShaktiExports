@@ -2,6 +2,8 @@
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { getAuthSession } from '@/lib/auth'
+import { createAuditLog } from './logs'
 
 export async function getInvoices() {
   return await prisma.invoice.findMany({
@@ -26,6 +28,11 @@ export async function getInvoice(id: number) {
 }
 
 export async function deleteInvoice(id: number) {
+  const user = await getAuthSession()
+  if (!user || user.role !== 'ADMIN') {
+    throw new Error('Unauthorized: Only administrators can delete invoices.')
+  }
+
   await prisma.$transaction(async (tx) => {
     const oldInvoice = await tx.invoice.findUnique({
       where: { id },
@@ -45,6 +52,14 @@ export async function deleteInvoice(id: number) {
       await tx.stockLedger.deleteMany({
         where: { referenceId: id, transactionType: 'SELL' }
       })
+
+      // Log the deletion
+      await createAuditLog(
+        'DELETE',
+        'INVOICE',
+        id.toString(),
+        `Deleted invoice no ${oldInvoice.invoiceNo} (value: ₹${oldInvoice.totalValue.toLocaleString()})`
+      )
     }
 
     await tx.invoice.delete({
@@ -108,6 +123,11 @@ function getFinancialYear(date: Date) {
 }
 
 export async function createInvoice(data: any) {
+  const user = await getAuthSession()
+  if (!user) {
+    throw new Error('Unauthorized')
+  }
+
   // 1. Generate Invoice Number
   const invoiceNo = await generateInvoiceNumber(data.type, data.diamondType, new Date(data.date))
   
@@ -184,6 +204,13 @@ export async function createInvoice(data: any) {
     return inv
   })
   
+  await createAuditLog(
+    'CREATE',
+    'INVOICE',
+    invoice.id.toString(),
+    `Created invoice no ${invoice.invoiceNo} for party id ${invoice.billedToId} (value: ₹${invoice.totalValue.toLocaleString()})`
+  )
+
   revalidatePath('/', 'layout')
   revalidatePath('/invoices')
   revalidatePath('/stock')
@@ -191,6 +218,11 @@ export async function createInvoice(data: any) {
 }
 
 export async function updateInvoice(id: number, data: any) {
+  const user = await getAuthSession()
+  if (!user) {
+    throw new Error('Unauthorized')
+  }
+
   const invoice = await prisma.$transaction(async (tx) => {
     // Revert old stock
     const oldInvoice = await tx.invoice.findUnique({ where: { id }, include: { lineItems: true } })
@@ -276,6 +308,13 @@ export async function updateInvoice(id: number, data: any) {
 
     return inv
   })
+
+  await createAuditLog(
+    'EDIT',
+    'INVOICE',
+    invoice.id.toString(),
+    `Updated invoice no ${invoice.invoiceNo} (value: ₹${invoice.totalValue.toLocaleString()})`
+  )
 
   revalidatePath('/', 'layout')
   revalidatePath('/invoices')

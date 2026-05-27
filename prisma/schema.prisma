@@ -47,6 +47,8 @@ model Profile {
   ifsc               String   @default("SBIN0000001")
   swiftCode          String   @default("")
   districtOriginCode String   @default("24")
+  signatureImage     String?
+  sealImage          String?
   updatedAt          DateTime @updatedAt
 }
 
@@ -84,8 +86,11 @@ model Invoice {
   totalWords          String
 
   declarationText     String
+  templateType        String   @default("Standard")
+  isDigitallySigned   Boolean  @default(false)
 
   lineItems           LineItem[]
+  allocations         PaymentAllocation[]
   createdAt           DateTime @default(now())
 }
 
@@ -189,8 +194,11 @@ model PurchaseInvoice {
   totalWords      String
 
   declarationText String
+  templateType    String   @default("Standard")
+  isDigitallySigned Boolean  @default(false)
 
   lineItems       PurchaseLineItem[]
+  allocations     PaymentAllocation[]
   createdAt       DateTime @default(now())
 }
 
@@ -251,5 +259,67 @@ model StockLedger {
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+// ── Authentication & Roles ──────────────────────────────────────────────────
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  role      String   // "ADMIN" | "ACCOUNTANT" | "OPERATOR"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ── Payment Reconciliation ──────────────────────────────────────────────────
+
+model PaymentTransaction {
+  id              Int      @id @default(autoincrement())
+  date            DateTime
+  type            String   // "RECEIPT" (from buyer) | "PAYMENT" (to supplier)
+  amount          Float
+  paymentMode     String   // "BANK" | "CASH" | "CHEQUE" | "UPI"
+  referenceNo     String?
+  remarks         String?
+  
+  partyId         Int?     // For RECEIPT (Sell Customer)
+  partyName       String?
+  supplierId      Int?     // For PAYMENT (Purchase Supplier)
+  supplierName    String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  allocations     PaymentAllocation[]
+}
+
+model PaymentAllocation {
+  id            Int                @id @default(autoincrement())
+  transactionId Int
+  transaction   PaymentTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  
+  invoiceId     Int?               // For Sell Invoices
+  invoice       Invoice?           @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  
+  purchaseId    Int?               // For Purchase Invoices
+  purchase      PurchaseInvoice?   @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  
+  amount        Float
+  createdAt     DateTime           @default(now())
+}
+
+// ── Audit Logs ──────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  username    String
+  role        String
+  action      String   // "CREATE" | "EDIT" | "DELETE" | "PRINT" | "LOGIN"
+  entityType  String   // "INVOICE" | "PURCHASE_INVOICE" | "PARTY" | "SUPPLIER" | "RECONCILIATION" | "PROFILE"
+  entityId    String?
+  details     String?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
 }
 

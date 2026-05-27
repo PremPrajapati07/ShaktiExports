@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { getAuthSession } from '@/lib/auth'
 
 export async function getProfile() {
   let profile = await prisma.profile.findUnique({ where: { id: 1 } })
@@ -25,11 +26,29 @@ export async function getProfile() {
 }
 
 export async function updateProfile(data: any) {
+  const user = await getAuthSession()
+  if (!user || user.role !== 'ADMIN') {
+    throw new Error('Unauthorized: Only administrators can modify the profile.')
+  }
+
   const profile = await prisma.profile.upsert({
     where: { id: 1 },
     update: data,
     create: { id: 1, ...data }
   })
+
+  // Log the profile update
+  await prisma.auditLog.create({
+    data: {
+      username: user.username,
+      role: user.role,
+      action: 'EDIT',
+      entityType: 'PROFILE',
+      entityId: '1',
+      details: 'Updated company profile details, bank accounts, or signature/seal images.'
+    }
+  })
+
   try {
     const { syncCompanyBuyer } = await import('./purchase-parties')
     await syncCompanyBuyer()
@@ -39,3 +58,4 @@ export async function updateProfile(data: any) {
   revalidatePath('/', 'layout')
   return profile
 }
+

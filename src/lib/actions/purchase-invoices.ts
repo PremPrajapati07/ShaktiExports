@@ -2,6 +2,8 @@
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { getAuthSession } from '@/lib/auth'
+import { createAuditLog } from './logs'
 
 export async function getPurchaseInvoices() {
   return await prisma.purchaseInvoice.findMany({
@@ -28,6 +30,11 @@ function getFinancialYear(date: Date) {
 }
 
 export async function deletePurchaseInvoice(id: number) {
+  const user = await getAuthSession()
+  if (!user || user.role !== 'ADMIN') {
+    throw new Error('Unauthorized: Only administrators can delete purchase invoices.')
+  }
+
   await prisma.$transaction(async (tx) => {
     const oldInvoice = await tx.purchaseInvoice.findUnique({
       where: { id },
@@ -47,6 +54,14 @@ export async function deletePurchaseInvoice(id: number) {
       await tx.stockLedger.deleteMany({
         where: { referenceId: id, transactionType: 'PURCHASE' }
       })
+
+      // Log the deletion
+      await createAuditLog(
+        'DELETE',
+        'PURCHASE_INVOICE',
+        id.toString(),
+        `Deleted purchase invoice no ${oldInvoice.invoiceNo} (value: ₹${oldInvoice.totalValue.toLocaleString()})`
+      )
     }
 
     await tx.purchaseInvoice.delete({
@@ -90,6 +105,11 @@ export async function generatePurchaseInvoiceNumber(
 }
 
 export async function createPurchaseInvoice(data: any) {
+  const user = await getAuthSession()
+  if (!user) {
+    throw new Error('Unauthorized')
+  }
+
   const invoiceNo = await generatePurchaseInvoiceNumber(
     data.type, data.diamondType, new Date(data.date)
   )
@@ -167,6 +187,13 @@ export async function createPurchaseInvoice(data: any) {
     return inv
   })
 
+  await createAuditLog(
+    'CREATE',
+    'PURCHASE_INVOICE',
+    invoice.id.toString(),
+    `Created purchase invoice no ${invoice.invoiceNo} from supplier id ${invoice.supplierId} (value: ₹${invoice.totalValue.toLocaleString()})`
+  )
+
   revalidatePath('/', 'layout')
   revalidatePath('/purchase-invoices')
   revalidatePath('/stock')
@@ -174,6 +201,11 @@ export async function createPurchaseInvoice(data: any) {
 }
 
 export async function updatePurchaseInvoice(id: number, data: any) {
+  const user = await getAuthSession()
+  if (!user) {
+    throw new Error('Unauthorized')
+  }
+
   const invoice = await prisma.$transaction(async (tx) => {
     // Revert old stock
     const oldInvoice = await tx.purchaseInvoice.findUnique({ where: { id }, include: { lineItems: true } })
@@ -260,6 +292,13 @@ export async function updatePurchaseInvoice(id: number, data: any) {
 
     return inv
   })
+
+  await createAuditLog(
+    'EDIT',
+    'PURCHASE_INVOICE',
+    invoice.id.toString(),
+    `Updated purchase invoice no ${invoice.invoiceNo} (value: ₹${invoice.totalValue.toLocaleString()})`
+  )
 
   revalidatePath('/', 'layout')
   revalidatePath('/purchase-invoices')

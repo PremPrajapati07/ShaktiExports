@@ -2,6 +2,8 @@
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { getAuthSession } from '@/lib/auth'
+import { createAuditLog } from './logs'
 
 // ── Suppliers (From Whom Purchase) ─────────────────────────────────────────
 
@@ -10,19 +12,57 @@ export async function getSuppliers() {
 }
 
 export async function createSupplier(data: any) {
+  const user = await getAuthSession()
+  if (!user) throw new Error('Unauthorized')
+
   const { type, ...supplierData } = data
-  await prisma.purchaseSupplier.create({ data: supplierData })
+  const supplier = await prisma.purchaseSupplier.create({ data: supplierData })
+
+  await createAuditLog(
+    'CREATE',
+    'SUPPLIER',
+    supplier.id.toString(),
+    `Created supplier ${supplier.name}`
+  )
+
   revalidatePath('/purchase-suppliers')
 }
 
 export async function updateSupplier(id: number, data: any) {
+  const user = await getAuthSession()
+  if (!user) throw new Error('Unauthorized')
+
   const { type, ...supplierData } = data
-  await prisma.purchaseSupplier.update({ where: { id }, data: supplierData })
+  const supplier = await prisma.purchaseSupplier.update({ where: { id }, data: supplierData })
+
+  await createAuditLog(
+    'EDIT',
+    'SUPPLIER',
+    supplier.id.toString(),
+    `Updated supplier ${supplier.name}`
+  )
+
   revalidatePath('/purchase-suppliers')
 }
 
 export async function deleteSupplier(id: number) {
-  await prisma.purchaseSupplier.delete({ where: { id } })
+  const user = await getAuthSession()
+  if (!user || user.role !== 'ADMIN') {
+    throw new Error('Unauthorized: Only administrators can delete suppliers.')
+  }
+
+  const supplier = await prisma.purchaseSupplier.findUnique({ where: { id } })
+  if (supplier) {
+    await prisma.purchaseSupplier.delete({ where: { id } })
+
+    await createAuditLog(
+      'DELETE',
+      'SUPPLIER',
+      id.toString(),
+      `Deleted supplier ${supplier.name}`
+    )
+  }
+
   revalidatePath('/purchase-suppliers')
 }
 
@@ -97,12 +137,26 @@ export async function getPurchaseBuyers() {
 }
 
 export async function createPurchaseBuyer(data: any) {
+  const user = await getAuthSession()
+  if (!user) throw new Error('Unauthorized')
+
   const { bankerName, accountNo, ifsc, swiftCode, ...buyerData } = data
-  await prisma.purchaseBuyer.create({ data: { ...buyerData, isCompany: false } })
+  const buyer = await prisma.purchaseBuyer.create({ data: { ...buyerData, isCompany: false } })
+
+  await createAuditLog(
+    'CREATE',
+    'PARTY',
+    buyer.id.toString(),
+    `Created purchase buyer (company profile) ${buyer.name}`
+  )
+
   revalidatePath('/purchase-buyers')
 }
 
 export async function updatePurchaseBuyer(id: number, data: any) {
+  const user = await getAuthSession()
+  if (!user) throw new Error('Unauthorized')
+
   const { bankerName, accountNo, ifsc, swiftCode, ...buyerData } = data
   const buyer = await prisma.purchaseBuyer.findUnique({ where: { id } })
   
@@ -118,16 +172,40 @@ export async function updatePurchaseBuyer(id: number, data: any) {
     }
   }
 
-  await prisma.purchaseBuyer.update({ where: { id }, data: updatedData })
+  const updatedBuyer = await prisma.purchaseBuyer.update({ where: { id }, data: updatedData })
+
+  await createAuditLog(
+    'EDIT',
+    'PARTY',
+    updatedBuyer.id.toString(),
+    `Updated purchase buyer/consignee ${updatedBuyer.name}`
+  )
+
   revalidatePath('/purchase-buyers')
 }
 
 export async function deletePurchaseBuyer(id: number) {
+  const user = await getAuthSession()
+  if (!user || user.role !== 'ADMIN') {
+    throw new Error('Unauthorized: Only administrators can delete purchase buyers.')
+  }
+
   const buyer = await prisma.purchaseBuyer.findUnique({ where: { id } })
   if (buyer?.isCompany) {
     throw new Error('Default company buyer profile cannot be deleted.')
   }
-  await prisma.purchaseBuyer.delete({ where: { id } })
+  
+  if (buyer) {
+    await prisma.purchaseBuyer.delete({ where: { id } })
+
+    await createAuditLog(
+      'DELETE',
+      'PARTY',
+      id.toString(),
+      `Deleted purchase buyer/consignee ${buyer.name}`
+    )
+  }
+
   revalidatePath('/purchase-buyers')
 }
 

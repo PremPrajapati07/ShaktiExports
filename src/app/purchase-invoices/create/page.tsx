@@ -1,13 +1,15 @@
 import { PurchaseInvoiceForm } from '@/components/PurchaseInvoiceForm'
-import { getPurchaseBuyers, getSuppliers } from '@/lib/actions/purchase-parties'
+import { getSuppliers } from '@/lib/actions/purchase-parties'
 import { prisma } from '@/lib/prisma'
+import { notFound } from 'next/navigation'
 
 export default async function CreatePurchaseInvoicePage() {
-  const [suppliers, buyers, declarations] = await Promise.all([
+  const [suppliers, companyBuyer] = await Promise.all([
     getSuppliers(),
-    getPurchaseBuyers(),
-    prisma.declaration.findMany({ orderBy: { title: 'asc' } })
+    prisma.purchaseBuyer.findFirst({ where: { isCompany: true } })
   ])
+
+  if (!companyBuyer) notFound()
 
   return (
     <div className="animate-fade-in">
@@ -19,8 +21,7 @@ export default async function CreatePurchaseInvoicePage() {
       </header>
       <PurchaseInvoiceForm
         suppliers={suppliers}
-        buyers={buyers}
-        declarations={declarations}
+        companyBuyer={companyBuyer}
       />
     </div>
   )

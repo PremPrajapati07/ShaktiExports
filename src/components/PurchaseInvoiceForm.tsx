@@ -12,31 +12,28 @@ interface PurchaseSupplier {
   state: string; stateCode: string; gstin: string; pan: string
   bankerName?: string | null; accountNo?: string | null; ifsc?: string | null; swiftCode?: string | null
 }
-interface PurchaseBuyer {
+interface CompanyBuyer {
   id: number; name: string; address: string; city: string
   state: string; stateCode: string; gstin: string; pan: string
-  type: string
 }
-interface Declaration { id: number; title: string; body: string }
 interface LineItem {
   id: string; description: string; hsn: string; quantity: number; rate: number
   discount: number; taxableValue: number; cgstRate: number; cgstAmount: number
   sgstRate: number; sgstAmount: number; igstRate: number; igstAmount: number; total: number
 }
 
-// 6 steps: 1=Type, 2=Diamond, 3=Parties, 4=Items, 5=Summary, 6=Declaration
-const TOTAL_STEPS = 6
+// 4 steps: 1=Type, 2=Diamond, 3=Supplier, 4=Items, 5=Summary
+const TOTAL_STEPS = 5
 
 const stepLabels: Record<number, string> = {
-  1: 'Type', 2: 'Diamond', 3: 'Parties', 4: 'Items', 5: 'Summary', 6: 'Declaration'
+  1: 'Type', 2: 'Diamond', 3: 'Supplier', 4: 'Items', 5: 'Summary'
 }
 
 export function PurchaseInvoiceForm({
-  suppliers, buyers, declarations, initialData, invoiceId
+  suppliers, companyBuyer, initialData, invoiceId
 }: {
   suppliers: PurchaseSupplier[]
-  buyers: PurchaseBuyer[]
-  declarations: Declaration[]
+  companyBuyer: CompanyBuyer
   initialData?: any
   invoiceId?: number
 }) {
@@ -50,8 +47,8 @@ export function PurchaseInvoiceForm({
     type: (initialData?.type || 'Intra') as 'Intra' | 'Inter',
     diamondType: (initialData?.diamondType || 'LabGrown') as 'LabGrown' | 'Natural',
     supplierId: initialData?.supplierId || 0,
-    shipToId: initialData?.shipToId || 0,
-    billToId: initialData?.billToId || 0,
+    shipToId: companyBuyer.id,
+    billToId: companyBuyer.id,
     sellerGstin: initialData?.sellerGstin || '',
     sellerPan: initialData?.sellerPan || '',
     terms: initialData?.terms || 'CREDIT',
@@ -78,7 +75,8 @@ export function PurchaseInvoiceForm({
         try {
           const { formData: savedFormData, lineItems: savedLineItems, step: savedStep } = JSON.parse(savedDraft)
           if (savedFormData) {
-            setFormData(savedFormData)
+            // Always keep company buyer IDs fresh
+            setFormData({ ...savedFormData, shipToId: companyBuyer.id, billToId: companyBuyer.id })
             lastDiamondTypeRef.current = savedFormData.diamondType
           }
           if (savedLineItems) setLineItems(savedLineItems)
@@ -101,7 +99,7 @@ export function PurchaseInvoiceForm({
     } else {
       setLineItems(initialData?.lineItems || [])
     }
-  }, [initialData])
+  }, [initialData, companyBuyer.id])
 
   // Save draft to localStorage on changes
   useEffect(() => {
@@ -124,8 +122,8 @@ export function PurchaseInvoiceForm({
         type: 'Intra',
         diamondType: 'LabGrown',
         supplierId: 0,
-        shipToId: 0,
-        billToId: 0,
+        shipToId: companyBuyer.id,
+        billToId: companyBuyer.id,
         sellerGstin: '',
         sellerPan: '',
         terms: 'CREDIT',
@@ -175,7 +173,6 @@ export function PurchaseInvoiceForm({
   }, [formData.diamondType])
 
   // Calculation
-  // Intra = IGST (Outside Gujarat), Inter = CGST+SGST (Within Gujarat)
   useEffect(() => {
     let taxableAmount = 0, cgstTotal = 0, sgstTotal = 0, igstTotal = 0
 
@@ -231,9 +228,7 @@ export function PurchaseInvoiceForm({
 
   const handleSubmit = async () => {
     setLoading(true)
-    if (!formData.supplierId) { alert('Please select a supplier (From Whom)'); setLoading(false); return }
-    if (!formData.shipToId) { alert('Please select a consignee (Ship To)'); setLoading(false); return }
-    if (!formData.billToId) { alert('Please select a buyer (Bill To)'); setLoading(false); return }
+    if (!formData.supplierId) { alert('Please select a supplier'); setLoading(false); return }
     try {
       if (invoiceId) {
         await updatePurchaseInvoice(invoiceId, { ...formData, ...summary, lineItems })
@@ -250,11 +245,6 @@ export function PurchaseInvoiceForm({
   }
 
   const selectedSupplier = suppliers.find(s => s.id === formData.supplierId)
-  const selectedShipTo = buyers.find(b => b.id === formData.shipToId)
-  const selectedBillTo = buyers.find(b => b.id === formData.billToId)
-
-  const shipToOptions = buyers.filter(b => b.type === 'ShipTo' || b.type === 'Both')
-  const billToOptions = buyers.filter(b => b.type === 'BillTo' || b.type === 'Both')
 
   // History chips for completed steps
   const stepSelections: Record<number, string> = {
@@ -263,10 +253,8 @@ export function PurchaseInvoiceForm({
     3: selectedSupplier ? `From: ${selectedSupplier.name}` : '',
     4: `${lineItems.length} item(s)`,
     5: summary.totalValue > 0 ? `₹${summary.totalValue.toLocaleString()}` : '',
-    6: formData.declarationText ? '✓ Set' : '',
   }
 
-  // Intra = IGST (Outside Gujarat)
   const isIGST = formData.type === 'Intra'
 
   return (
@@ -305,6 +293,27 @@ export function PurchaseInvoiceForm({
           </button>
         </div>
       )}
+
+      {/* Company Buyer Info Banner */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.75rem',
+        padding: '0.75rem 1rem',
+        background: 'rgba(34, 197, 94, 0.05)',
+        border: '1px solid rgba(34, 197, 94, 0.2)',
+        borderRadius: '0.5rem',
+        marginBottom: '1.5rem',
+        fontSize: '0.85rem',
+        color: 'var(--text-muted)'
+      }}>
+        <span style={{ fontSize: '1.1rem' }}>🏢</span>
+        <div>
+          <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>{companyBuyer.name}</span>
+          <span style={{ marginLeft: '0.5rem' }}>— GSTIN: {companyBuyer.gstin} | {companyBuyer.city}, {companyBuyer.state}</span>
+          <span style={{ marginLeft: '0.5rem', color: 'rgba(34,197,94,0.9)', fontWeight: 500 }}>• Bill To &amp; Ship To (Company)</span>
+        </div>
+      </div>
 
       {/* Step History Breadcrumb */}
       {step > 1 && (
@@ -362,7 +371,7 @@ export function PurchaseInvoiceForm({
                   onChange={e => setFormData({ ...formData, diamondType: e.target.value as any })} />
                 <div className="radio-content">
                   <span className="radio-title">Lab Grown (CVD)</span>
-                  <span className="radio-desc">LABORATORY GROWN CUT & POLISH DIAMOND — Invoice: P-LGD</span>
+                  <span className="radio-desc">LABORATORY GROWN CUT &amp; POLISH DIAMOND — Invoice: P-LGD</span>
                 </div>
               </label>
               <label className="radio-card">
@@ -370,20 +379,20 @@ export function PurchaseInvoiceForm({
                   onChange={e => setFormData({ ...formData, diamondType: e.target.value as any })} />
                 <div className="radio-content">
                   <span className="radio-title">Natural Diamond</span>
-                  <span className="radio-desc">CUT & POLISHED NATURAL DIAMOND — Invoice: P-NS</span>
+                  <span className="radio-desc">CUT &amp; POLISHED NATURAL DIAMOND — Invoice: P-NS</span>
                 </div>
               </label>
             </div>
           </section>
         )}
 
-        {/* ── Step 3: From Whom + Ship To + Bill To ───────────────────────── */}
+        {/* ── Step 3: Supplier + Date + Terms ─────────────────────────────── */}
         {step === 3 && (
           <section className="step-section">
-            <h2>Parties (Supplier, Consignee &amp; Buyer)</h2>
+            <h2>Supplier Details</h2>
             <div className="form-grid">
               {/* Supplier */}
-              <div className="form-group">
+              <div className="form-group" style={{ gridColumn: 'span 2' }}>
                 <label className="form-label">Supplier (From Whom Purchase)</label>
                 <select className="form-input" value={formData.supplierId}
                   onChange={e => setFormData({ ...formData, supplierId: parseInt(e.target.value) })}>
@@ -396,7 +405,7 @@ export function PurchaseInvoiceForm({
                     <p>{selectedSupplier.city}, {selectedSupplier.state} ({selectedSupplier.stateCode})</p>
                     <p>GSTIN: {selectedSupplier.gstin} &nbsp;|&nbsp; PAN: {selectedSupplier.pan}</p>
                     {selectedSupplier.bankerName && (
-                      <p className="mt-1 text-xs text-gray-600">Bank: {selectedSupplier.bankerName} ({selectedSupplier.accountNo})</p>
+                      <p className="mt-1 text-xs text-gray-600">Bank: {selectedSupplier.bankerName} — A/c: {selectedSupplier.accountNo} | IFSC: {selectedSupplier.ifsc}</p>
                     )}
                   </div>
                 )}
@@ -407,51 +416,7 @@ export function PurchaseInvoiceForm({
                 )}
               </div>
 
-              {/* Consignee (Ship To) */}
-              <div className="form-group">
-                <label className="form-label">Consignee (Ship To)</label>
-                <select className="form-input" value={formData.shipToId}
-                  onChange={e => setFormData({ ...formData, shipToId: parseInt(e.target.value) })}>
-                  <option value={0}>Select Consignee</option>
-                  {shipToOptions.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
-                {selectedShipTo && (
-                  <div className="selection-preview">
-                    <p><strong>{selectedShipTo.address}</strong></p>
-                    <p>{selectedShipTo.city}, {selectedShipTo.state} ({selectedShipTo.stateCode})</p>
-                    <p>GSTIN: {selectedShipTo.gstin} &nbsp;|&nbsp; PAN: {selectedShipTo.pan}</p>
-                  </div>
-                )}
-                {shipToOptions.length === 0 && (
-                  <p style={{ color: 'var(--error)', fontSize: '0.875rem', marginTop: '0.5rem' }}>
-                    No consignees found. <a href="/purchase-buyers/create" style={{ color: 'var(--accent)' }}>Add one first →</a>
-                  </p>
-                )}
-              </div>
-
-              {/* Buyer (Bill To) */}
-              <div className="form-group">
-                <label className="form-label">Buyer (Bill To)</label>
-                <select className="form-input" value={formData.billToId}
-                  onChange={e => setFormData({ ...formData, billToId: parseInt(e.target.value) })}>
-                  <option value={0}>Select Buyer</option>
-                  {billToOptions.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
-                {selectedBillTo && (
-                  <div className="selection-preview">
-                    <p><strong>{selectedBillTo.address}</strong></p>
-                    <p>{selectedBillTo.city}, {selectedBillTo.state} ({selectedBillTo.stateCode})</p>
-                    <p>GSTIN: {selectedBillTo.gstin} &nbsp;|&nbsp; PAN: {selectedBillTo.pan}</p>
-                  </div>
-                )}
-                {billToOptions.length === 0 && (
-                  <p style={{ color: 'var(--error)', fontSize: '0.875rem', marginTop: '0.5rem' }}>
-                    No buyers found. <a href="/purchase-buyers/create" style={{ color: 'var(--accent)' }}>Add one first →</a>
-                  </p>
-                )}
-              </div>
-
-              {/* Invoice Date inline here */}
+              {/* Invoice Date */}
               <div className="form-group">
                 <label className="form-label">Invoice Date</label>
                 <input type="date" className="form-input" value={formData.date}
@@ -551,28 +516,6 @@ export function PurchaseInvoiceForm({
           </section>
         )}
 
-        {/* ── Step 6: Declaration ──────────────────────────────────────────── */}
-        {step === 6 && (
-          <section className="step-section">
-            <h2>Declaration &amp; Terms</h2>
-            <div className="form-group">
-              <label className="form-label">Select Template</label>
-              <select className="form-input" onChange={e => {
-                const dec = declarations.find(d => d.id === parseInt(e.target.value))
-                if (dec) setFormData({ ...formData, declarationText: dec.body })
-              }}>
-                <option value="">Select Template</option>
-                {declarations.map(d => <option key={d.id} value={d.id}>{d.title}</option>)}
-              </select>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Declaration Text (Editable)</label>
-              <textarea className="form-input" rows={8} value={formData.declarationText}
-                onChange={e => setFormData({ ...formData, declarationText: e.target.value })} />
-            </div>
-          </section>
-        )}
-
       </div>
 
       {/* Navigation */}
@@ -586,7 +529,7 @@ export function PurchaseInvoiceForm({
           </button>
         ) : (
           <button type="button" onClick={handleSubmit} className="btn btn-success"
-            disabled={loading || !formData.supplierId || !formData.shipToId || !formData.billToId}>
+            disabled={loading || !formData.supplierId}>
             <Save size={20} /> {loading ? 'Saving...' : 'Generate Purchase Invoice'}
           </button>
         )}
@@ -594,4 +537,3 @@ export function PurchaseInvoiceForm({
     </div>
   )
 }
-

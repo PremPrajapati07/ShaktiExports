@@ -15,10 +15,14 @@ import {
   Package,
   Settings,
   Menu,
-  X
+  X,
+  Coins,
+  History,
+  LogOut
 } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useState, useEffect } from 'react'
+import { logoutAction } from '@/lib/actions/auth'
 
 const sellItems = [
   { name: 'Manage Parties', href: '/parties', icon: Users },
@@ -30,12 +34,18 @@ const sellItems = [
 
 const purchaseItems = [
   { name: 'Manage Suppliers', href: '/purchase-suppliers', icon: Store },
-  { name: 'Manage Buyers', href: '/purchase-buyers', icon: Package },
   { name: 'Create Purchase Invoice', href: '/purchase-invoices/create', icon: ShoppingCart },
   { name: 'Purchase Invoice List', href: '/purchase-invoices', icon: List },
 ]
 
-export function Sidebar() {
+interface SidebarProps {
+  user?: {
+    username: string;
+    role: string;
+  } | null;
+}
+
+export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
 
@@ -54,6 +64,16 @@ export function Sidebar() {
     }
     return pathname.startsWith(href)
   }
+
+  const handleLogout = async () => {
+    const res = await logoutAction()
+    if (res.success) {
+      window.location.href = '/login'
+    }
+  }
+
+  const showReconciliation = user?.role === 'ADMIN' || user?.role === 'ACCOUNTANT'
+  const showAuditLogs = user?.role === 'ADMIN'
 
   return (
     <>
@@ -93,45 +113,78 @@ export function Sidebar() {
           </button>
         </div>
 
-      <nav className="sidebar-nav">
-        <Link href="/" className={clsx('nav-link', pathname === '/' && 'active')}>
-          <LayoutDashboard size={20} />
-          <span>Dashboard</span>
-        </Link>
-        <Link href="/stock" className={clsx('nav-link', pathname.startsWith('/stock') && 'active')}>
-          <Package size={20} />
-          <span>Stock & Inventory</span>
-        </Link>
-        <Link href="/profile" className={clsx('nav-link', pathname.startsWith('/profile') && 'active')}>
-          <Settings size={20} />
-          <span>Company Profile</span>
-        </Link>
-
-        <div className="nav-section-title">Sell Invoices</div>
-        {sellItems.map((item) => (
-          <Link
-            key={item.name}
-            href={item.href}
-            className={clsx('nav-link', isActive(item.href) && 'active')}
-          >
-            <item.icon size={20} />
-            <span>{item.name}</span>
+        <nav className="sidebar-nav">
+          <Link href="/" className={clsx('nav-link', pathname === '/' && 'active')}>
+            <LayoutDashboard size={20} />
+            <span>Dashboard</span>
           </Link>
-        ))}
-
-        <div className="nav-section-title">Purchase Invoices</div>
-        {purchaseItems.map((item) => (
-          <Link
-            key={item.name}
-            href={item.href}
-            className={clsx('nav-link', isActive(item.href) && 'active')}
-          >
-            <item.icon size={20} />
-            <span>{item.name}</span>
+          <Link href="/stock" className={clsx('nav-link', pathname.startsWith('/stock') && 'active')}>
+            <Package size={20} />
+            <span>Stock & Inventory</span>
           </Link>
-        ))}
-      </nav>
-    </aside>
+          <Link href="/profile" className={clsx('nav-link', pathname.startsWith('/profile') && 'active')}>
+            <Settings size={20} />
+            <span>Company Profile</span>
+          </Link>
+
+          {showReconciliation && (
+            <Link href="/reconciliation" className={clsx('nav-link', pathname.startsWith('/reconciliation') && 'active')}>
+              <Coins size={20} />
+              <span>Reconciliation</span>
+            </Link>
+          )}
+
+          {showAuditLogs && (
+            <Link href="/audit-logs" className={clsx('nav-link', pathname.startsWith('/audit-logs') && 'active')}>
+              <History size={20} />
+              <span>Audit Logs</span>
+            </Link>
+          )}
+
+          <div className="nav-section-title">Sell Invoices</div>
+          {sellItems.map((item) => (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={clsx('nav-link', isActive(item.href) && 'active')}
+            >
+              <item.icon size={20} />
+              <span>{item.name}</span>
+            </Link>
+          ))}
+
+          <div className="nav-section-title">Purchase Invoices</div>
+          {purchaseItems.map((item) => (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={clsx('nav-link', isActive(item.href) && 'active')}
+            >
+              <item.icon size={20} />
+              <span>{item.name}</span>
+            </Link>
+          ))}
+        </nav>
+
+        {user && (
+          <div className="sidebar-user">
+            <div className="sidebar-user-info">
+              <div className="sidebar-user-avatar">
+                {user.username.charAt(0).toUpperCase()}
+              </div>
+              <div className="sidebar-user-details">
+                <span className="sidebar-username">{user.username}</span>
+                <span className="sidebar-role-badge">{user.role}</span>
+              </div>
+            </div>
+            <button className="sidebar-logout-btn" onClick={handleLogout}>
+              <LogOut size={16} />
+              <span>Log Out</span>
+            </button>
+          </div>
+        )}
+      </aside>
     </>
   )
 }
+

@@ -1,18 +1,44 @@
 import { PrismaClient } from '@prisma/client'
+import crypto from 'crypto'
 
 const prisma = new PrismaClient()
+
+function hashPassword(password: string): string {
+  const data = new TextEncoder().encode(password + 'shakti_salt_99')
+  const hash = crypto.createHash('sha256').update(data).digest('hex')
+  return hash
+}
 
 async function main() {
   console.log('Clearing database...')
   
   // Clear tables in correct order to avoid FK issues
+  await prisma.auditLog.deleteMany({})
+  await prisma.paymentAllocation.deleteMany({})
+  await prisma.paymentTransaction.deleteMany({})
+  await prisma.user.deleteMany({})
   await prisma.lineItem.deleteMany({})
   await prisma.invoice.deleteMany({})
+  await prisma.purchaseLineItem.deleteMany({})
+  await prisma.purchaseInvoice.deleteMany({})
   await prisma.party.deleteMany({})
+  await prisma.purchaseSupplier.deleteMany({})
+  await prisma.purchaseBuyer.deleteMany({})
   await prisma.declaration.deleteMany({})
   await prisma.counter.deleteMany({})
+  await prisma.stockLedger.deleteMany({})
+  await prisma.stock.deleteMany({})
 
-  console.log('Seeding data...')
+  console.log('Seeding default users...')
+  await prisma.user.createMany({
+    data: [
+      { username: 'admin', password: hashPassword('admin123'), role: 'ADMIN' },
+      { username: 'accountant', password: hashPassword('accountant123'), role: 'ACCOUNTANT' },
+      { username: 'operator', password: hashPassword('operator123'), role: 'OPERATOR' },
+    ]
+  })
+
+  console.log('Seeding sample data...')
 
   // 1. Manage Parties
   await prisma.party.create({
@@ -56,6 +82,14 @@ The diamonds have not been obtained in violation of applicable National laws and
 
 Any dispute arising out of this invoice shall be subject to exclusive jurisdiction of Surat Courts only.`
     }
+  })
+
+  // Initialize stocks
+  await prisma.stock.createMany({
+    data: [
+      { id: 'LabGrown', diamondType: 'LabGrown', totalCarats: 0 },
+      { id: 'Natural', diamondType: 'Natural', totalCarats: 0 },
+    ]
   })
 
   console.log('Database seeded successfully.')
