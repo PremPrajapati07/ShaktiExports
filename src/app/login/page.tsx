@@ -52,7 +52,9 @@ export default function LoginPage() {
               height={80}
               style={{ margin: '0 auto', marginBottom: '1rem', objectFit: 'contain' }}
               priority
+              unoptimized
             />
+
           </div>
 
           {error && (

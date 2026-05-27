@@ -91,7 +91,9 @@ export function Sidebar({ user }: SidebarProps) {
             height={40}
             style={{ objectFit: 'contain' }}
             priority
+            unoptimized
           />
+
         </div>
       </header>
 
@@ -109,7 +111,9 @@ export function Sidebar({ user }: SidebarProps) {
               height={60}
               style={{ objectFit: 'contain' }}
               priority
+              unoptimized
             />
+
           </div>
           <button 
             className="sidebar-close-btn" 
