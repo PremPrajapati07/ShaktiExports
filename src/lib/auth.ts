@@ -65,3 +65,15 @@ export const authOptions: NextAuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET || 'fallback-secret-for-development-only',
 }
+
+import { getServerSession } from "next-auth/next"
+
+export async function getAuthSession() {
+  const session = await getServerSession(authOptions)
+  if (!session || !session.user) return null
+  return {
+    id: parseInt((session.user as any).id),
+    username: (session.user as any).name || '',
+    role: (session.user as any).role || ''
+  }
+}

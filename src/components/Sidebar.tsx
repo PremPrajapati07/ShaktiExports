@@ -22,7 +22,7 @@ import {
 } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useState, useEffect } from 'react'
-import { logoutAction } from '@/lib/actions/auth'
+import { signOut } from 'next-auth/react'
 
 const sellItems = [
   { name: 'Manage Parties', href: '/parties', icon: Users },
@@ -66,10 +66,7 @@ export function Sidebar({ user }: SidebarProps) {
   }
 
   const handleLogout = async () => {
-    const res = await logoutAction()
-    if (res.success) {
-      window.location.href = '/login'
-    }
+    await signOut({ callbackUrl: '/login' })
   }
 
   const showReconciliation = user?.role === 'ADMIN' || user?.role === 'ACCOUNTANT'
