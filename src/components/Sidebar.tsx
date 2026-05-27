@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
@@ -83,8 +84,14 @@ export function Sidebar({ user }: SidebarProps) {
           <Menu size={24} />
         </button>
         <div className="mobile-logo">
-          <Diamond className="logo-icon" size={24} />
-          <span className="mobile-brand-name">Shakti Exports</span>
+          <Image 
+            src="/logo-full.png" 
+            alt="Shakti Exports" 
+            width={150} 
+            height={40}
+            style={{ objectFit: 'contain' }}
+            priority
+          />
         </div>
       </header>
 
@@ -94,12 +101,15 @@ export function Sidebar({ user }: SidebarProps) {
 
       <aside className={clsx("sidebar", isOpen && "sidebar-open")}>
         <div className="sidebar-header">
-          <div className="logo">
-            <Diamond className="logo-icon" size={32} />
-            <div className="logo-text">
-              <span className="brand-name">Shakti Exports</span>
-              <span className="brand-tagline">Diamond Traders</span>
-            </div>
+          <div className="logo" style={{ padding: '0.5rem 0' }}>
+            <Image 
+              src="/logo-full.png" 
+              alt="Shakti Exports" 
+              width={200} 
+              height={60}
+              style={{ objectFit: 'contain' }}
+              priority
+            />
           </div>
           <button 
             className="sidebar-close-btn" 

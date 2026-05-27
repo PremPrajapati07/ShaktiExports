@@ -9,6 +9,10 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Shakti Exports | Diamond Invoice Management',
   description: 'GST Compliant Invoice Management System',
+  icons: {
+    icon: '/logo-icon.png',
+    apple: '/logo-icon.png',
+  }
 }
 
 export default async function RootLayout({

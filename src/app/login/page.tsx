@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Lock, User, Key } from 'lucide-react'
+import { User, Key } from 'lucide-react'
+import Image from 'next/image'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -44,26 +45,14 @@ export default function LoginPage() {
           border: '1px solid rgba(255, 255, 255, 0.08)'
         }}>
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '56px',
-              height: '56px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, var(--accent) 0%, #1e40af 100%)',
-              color: 'white',
-              marginBottom: '1rem',
-              boxShadow: '0 8px 16px rgba(59, 130, 246, 0.2)'
-            }}>
-              <Lock size={28} />
-            </div>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)' }}>
-              Shakti Exports
-            </h2>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-              Invoicing & Ledger System
-            </p>
+            <Image 
+              src="/logo-full.png" 
+              alt="Shakti Exports" 
+              width={250} 
+              height={80}
+              style={{ margin: '0 auto', marginBottom: '1rem', objectFit: 'contain' }}
+              priority
+            />
           </div>
 
           {error && (
