@@ -33,9 +33,10 @@ export async function adjustStockManually(data: {
   diamondType: 'LabGrown' | 'Natural',
   carats: number,
   remarks: string,
-  date?: string | Date
+  date?: string | Date,
+  rate?: number
 }) {
-  const { diamondType, carats, remarks, date } = data
+  const { diamondType, carats, remarks, date, rate } = data
   
   if (carats === 0) throw new Error("Carats cannot be 0")
   if (!remarks) throw new Error("Remarks are required for manual adjustments")
@@ -47,6 +48,7 @@ export async function adjustStockManually(data: {
         date: date ? new Date(date) : new Date(),
         transactionType: 'MANUAL_ADJUSTMENT',
         carats: carats, // Save as signed so we know if it is add or subtract
+        rate: rate ? Number(rate) : null,
         referenceNo: 'Manual Adj',
         partyType: 'MANUAL',
         remarks
@@ -66,9 +68,10 @@ export async function adjustStockManually(data: {
 export async function updateManualAdjustment(id: number, data: {
   date: string | Date,
   carats: number, // signed: positive for add, negative for subtract
-  remarks: string
+  remarks: string,
+  rate?: number
 }) {
-  const { date, carats, remarks } = data
+  const { date, carats, remarks, rate } = data
   if (carats === 0) throw new Error("Carats cannot be 0")
   if (!remarks) throw new Error("Remarks are required")
 
@@ -89,6 +92,7 @@ export async function updateManualAdjustment(id: number, data: {
       data: {
         date: new Date(date),
         carats: carats,
+        rate: rate ? Number(rate) : null,
         remarks
       }
     })

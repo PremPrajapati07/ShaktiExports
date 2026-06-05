@@ -19,6 +19,7 @@ export function StockDashboard({ overview, ledger }: { overview: any, ledger: an
   const [adjCarats, setAdjCarats] = useState<string>('')
   const [adjRemarks, setAdjRemarks] = useState('')
   const [adjDate, setAdjDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'))
+  const [adjRate, setAdjRate] = useState<string>('')
 
   // Edit Modal State
   const [editingEntry, setEditingEntry] = useState<any>(null)
@@ -26,6 +27,7 @@ export function StockDashboard({ overview, ledger }: { overview: any, ledger: an
   const [editMode, setEditMode] = useState<'ADD' | 'SUBTRACT'>('ADD')
   const [editCarats, setEditCarats] = useState('')
   const [editRemarks, setEditRemarks] = useState('')
+  const [editRate, setEditRate] = useState<string>('')
 
   const handleAdjust = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,17 +39,20 @@ export function StockDashboard({ overview, ledger }: { overview: any, ledger: an
         setLoading(false)
         return
       }
+      const rate = adjRate ? parseFloat(adjRate) : undefined
 
       await adjustStockManually({
         diamondType: adjType,
         carats: adjMode === 'ADD' ? carats : -carats,
         remarks: adjRemarks,
-        date: adjDate
+        date: adjDate,
+        rate
       })
       
       setIsModalOpen(false)
       setAdjCarats('')
       setAdjRemarks('')
+      setAdjRate('')
       setAdjDate(format(new Date(), 'yyyy-MM-dd'))
     } catch (err: any) {
       alert(err.message || 'Failed to adjust stock')
@@ -67,11 +72,13 @@ export function StockDashboard({ overview, ledger }: { overview: any, ledger: an
         setLoading(false)
         return
       }
+      const rate = editRate ? parseFloat(editRate) : undefined
 
       await updateManualAdjustment(editingEntry.id, {
         date: editDate,
         carats: editMode === 'ADD' ? carats : -carats,
-        remarks: editRemarks
+        remarks: editRemarks,
+        rate
       })
 
       setEditingEntry(null)
@@ -112,6 +119,7 @@ export function StockDashboard({ overview, ledger }: { overview: any, ledger: an
       'Transaction Type',
       'Diamond Type',
       'Carats',
+      'Rate (₹/Ct)',
       'Party Name',
       'Party Type',
       'Reference',
@@ -125,6 +133,7 @@ export function StockDashboard({ overview, ledger }: { overview: any, ledger: an
         `"${entry.transactionType}"`,
         `"${entry.diamondType === 'LabGrown' ? 'Lab Grown' : 'Natural'}"`,
         (isNegative ? '-' : '+') + Math.abs(entry.carats).toString(),
+        entry.rate ? entry.rate.toString() : '',
         `"${entry.partyName || ''}"`,
         `"${entry.partyType || ''}"`,
         `"${entry.referenceNo || ''}"`,
@@ -215,6 +224,7 @@ export function StockDashboard({ overview, ledger }: { overview: any, ledger: an
                 <th>Type</th>
                 <th>Diamond</th>
                 <th>Carats</th>
+                <th>Rate (₹/Ct)</th>
                 <th>Party</th>
                 <th>Reference</th>
                 <th>Remarks</th>
@@ -241,6 +251,7 @@ export function StockDashboard({ overview, ledger }: { overview: any, ledger: an
                     <td style={{ fontWeight: 'bold', color: isNegative ? 'var(--text-warning)' : 'var(--text-success)' }}>
                       {isNegative ? '-' : '+'}{Math.abs(entry.carats).toFixed(2)}
                     </td>
+                    <td>{entry.rate ? `₹${entry.rate.toLocaleString()}` : '-'}</td>
                   <td>
                     {entry.partyName ? (
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -274,6 +285,7 @@ export function StockDashboard({ overview, ledger }: { overview: any, ledger: an
                             setEditMode(entry.carats >= 0 ? 'ADD' : 'SUBTRACT')
                             setEditCarats(Math.abs(entry.carats).toString())
                             setEditRemarks(entry.remarks || '')
+                            setEditRate(entry.rate ? entry.rate.toString() : '')
                           }}
                           className="btn btn-outline btn-sm"
                           style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem' }}
@@ -334,6 +346,11 @@ export function StockDashboard({ overview, ledger }: { overview: any, ledger: an
               </div>
 
               <div className="form-group">
+                <label className="form-label">Rate (₹/Ct - Optional)</label>
+                <input type="number" step="0.01" min="0" className="form-input" value={adjRate} onChange={e => setAdjRate(e.target.value)} placeholder="0.00" />
+              </div>
+
+              <div className="form-group">
                 <label className="form-label">Remarks / Reason</label>
                 <textarea required className="form-input" rows={3} value={adjRemarks} onChange={e => setAdjRemarks(e.target.value)} placeholder="E.g., Physical stock verification difference..." />
               </div>
@@ -388,6 +405,11 @@ export function StockDashboard({ overview, ledger }: { overview: any, ledger: an
                   <label className="form-label">Carats</label>
                   <input type="number" step="0.01" min="0" required className="form-input" value={editCarats} onChange={e => setEditCarats(e.target.value)} placeholder="0.00" />
                 </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Rate (₹/Ct - Optional)</label>
+                <input type="number" step="0.01" min="0" className="form-input" value={editRate} onChange={e => setEditRate(e.target.value)} placeholder="0.00" />
               </div>
 
               <div className="form-group">

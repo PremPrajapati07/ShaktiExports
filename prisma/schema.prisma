@@ -247,6 +247,7 @@ model StockLedger {
   date            DateTime
   transactionType String   // "PURCHASE" | "SELL" | "MANUAL_ADJUSTMENT"
   carats          Float
+  rate            Float?
   
   // Reference
   referenceId     Int?     // Invoice ID or PurchaseInvoice ID
