@@ -20,7 +20,8 @@ export function PartyForm({ party, type = 'Party' }: { party?: any, type?: strin
 
   const handleChange = (e: any) => {
     const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    const val = ['gstin', 'pan'].includes(name) ? value.toUpperCase() : value
+    setFormData(prev => ({ ...prev, [name]: val }))
   }
 
   const handleSubmit = async (e: any) => {

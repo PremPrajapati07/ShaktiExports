@@ -121,7 +121,10 @@ export function PurchasePartyForm({
                 value={(data as any)[f.key]}
                 required={f.required}
                 disabled={initialData?.isCompany && ['name', 'gstin', 'pan'].includes(f.key)}
-                onChange={e => setData({ ...data, [f.key]: e.target.value })}
+                onChange={e => {
+                  const val = ['gstin', 'pan'].includes(f.key) ? e.target.value.toUpperCase() : e.target.value
+                  setData({ ...data, [f.key]: val })
+                }}
               />
             )}
           </div>

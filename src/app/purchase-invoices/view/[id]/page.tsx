@@ -22,6 +22,7 @@ export default async function PurchaseInvoiceViewPage({ params }: { params: Prom
             Purchase Invoice · {format(new Date(invoice.date), 'dd MMM yyyy')} ·{' '}
             {isIGST ? 'IGST (Intra)' : 'CGST+SGST (Inter)'} ·{' '}
             {invoice.diamondType === 'LabGrown' ? 'Lab Grown' : 'Natural Diamond'}
+            {invoice.supplierInvoiceNo && ` · Supplier Inv No: ${invoice.supplierInvoiceNo}`}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>

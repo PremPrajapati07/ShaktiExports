@@ -10,8 +10,10 @@ export function ProfileForm({ initialProfile, user }: { initialProfile: any; use
   const [loading, setLoading] = useState(false)
   const isReadOnly = user?.role !== 'ADMIN'
 
+  const [success, setSuccess] = useState(false)
   const [formData, setFormData] = useState({
     companyName: initialProfile?.companyName || 'SHAKTI EXPORTS',
+    companyAddress: initialProfile?.companyAddress || 'G-1, Diamond Tower, Surat, Gujarat',
     gstin: initialProfile?.gstin || '24AAAAA0000A1Z5',
     pan: initialProfile?.pan || 'ABCDE1234F',
     terms: initialProfile?.terms || 'CREDIT',
@@ -24,9 +26,10 @@ export function ProfileForm({ initialProfile, user }: { initialProfile: any; use
     sealImage: initialProfile?.sealImage || null,
   })
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    const val = ['gstin', 'pan'].includes(name) ? value.toUpperCase() : value
+    setFormData(prev => ({ ...prev, [name]: val }))
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: 'signatureImage' | 'sealImage') => {
@@ -59,10 +62,12 @@ export function ProfileForm({ initialProfile, user }: { initialProfile: any; use
     e.preventDefault()
     if (isReadOnly) return
     setLoading(true)
+    setSuccess(false)
     try {
       await updateProfile(formData)
-      alert('Profile updated successfully!')
+      setSuccess(true)
       router.refresh()
+      setTimeout(() => setSuccess(false), 3000)
     } catch (err: any) {
       alert(err.message || 'Failed to update profile')
     } finally {
@@ -102,6 +107,20 @@ export function ProfileForm({ initialProfile, user }: { initialProfile: any; use
             className="form-input"
             disabled={isReadOnly}
             required
+          />
+        </div>
+
+        <div className="form-group" style={{ gridColumn: 'span 2' }}>
+          <label className="form-label">Company Address</label>
+          <textarea
+            name="companyAddress"
+            value={formData.companyAddress}
+            onChange={handleChange}
+            className="form-input"
+            rows={2}
+            disabled={isReadOnly}
+            required
+            style={{ resize: 'vertical' }}
           />
         </div>
 
@@ -334,7 +353,12 @@ export function ProfileForm({ initialProfile, user }: { initialProfile: any; use
       </div>
 
       {!isReadOnly && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', justifyContent: 'flex-end', marginTop: '2rem' }}>
+          {success && (
+            <span style={{ color: '#22c55e', fontWeight: 600, fontSize: '0.9rem' }}>
+              ✓ Saved successfully!
+            </span>
+          )}
           <button type="submit" className="btn btn-primary" disabled={loading}>
             <Save size={18} />
             <span>{loading ? 'Saving...' : 'Save Profile'}</span>

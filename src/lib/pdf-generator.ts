@@ -588,6 +588,9 @@ export function generatePurchaseInvoicePDF(
     ['Mode/Terms', invoice.terms || ''],
     ['Diamond Type', invoice.diamondType === 'LabGrown' ? 'Lab Grown (CVD)' : 'Natural Diamond'],
   ]
+  if (invoice.supplierInvoiceNo) {
+    cells.push(['Supplier Inv No.', invoice.supplierInvoiceNo])
+  }
   const rowH = topH / cells.length
   cells.forEach((pair, i) => {
     const cy = y + i * rowH

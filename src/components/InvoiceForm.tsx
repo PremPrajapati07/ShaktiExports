@@ -496,7 +496,7 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
                   type="text" 
                   className="form-input" 
                   value={formData.gstin} 
-                  onChange={(e) => setFormData({...formData, gstin: e.target.value})}
+                  onChange={(e) => setFormData({...formData, gstin: e.target.value.toUpperCase()})}
                 />
               </div>
               <div className="form-group">
@@ -505,7 +505,7 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
                   type="text" 
                   className="form-input" 
                   value={formData.pan} 
-                  onChange={(e) => setFormData({...formData, pan: e.target.value})}
+                  onChange={(e) => setFormData({...formData, pan: e.target.value.toUpperCase()})}
                 />
               </div>
               <div className="form-group">

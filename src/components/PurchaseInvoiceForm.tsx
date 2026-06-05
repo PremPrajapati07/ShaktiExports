@@ -47,6 +47,7 @@ export function PurchaseInvoiceForm({
     type: (initialData?.type || 'Intra') as 'Intra' | 'Inter',
     diamondType: (initialData?.diamondType || 'LabGrown') as 'LabGrown' | 'Natural',
     supplierId: initialData?.supplierId || 0,
+    supplierInvoiceNo: initialData?.supplierInvoiceNo || '',
     shipToId: companyBuyer.id,
     billToId: companyBuyer.id,
     sellerGstin: initialData?.sellerGstin || '',
@@ -122,6 +123,7 @@ export function PurchaseInvoiceForm({
         type: 'Intra',
         diamondType: 'LabGrown',
         supplierId: 0,
+        supplierInvoiceNo: '',
         shipToId: companyBuyer.id,
         billToId: companyBuyer.id,
         sellerGstin: '',
@@ -429,6 +431,18 @@ export function PurchaseInvoiceForm({
                 <input type="text" className="form-input" value={formData.terms}
                   onChange={e => setFormData({ ...formData, terms: e.target.value })} />
               </div>
+
+              {/* Supplier Invoice Number */}
+              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="form-label">Supplier Invoice Number</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={formData.supplierInvoiceNo}
+                  onChange={e => setFormData({ ...formData, supplierInvoiceNo: e.target.value })}
+                  placeholder="Enter Supplier Invoice Number (e.g. INV-2026-001)"
+                />
+              </div>
             </div>
           </section>
         )}
@@ -495,6 +509,12 @@ export function PurchaseInvoiceForm({
           <section className="step-section">
             <h2>Summary &amp; Totals</h2>
             <div className="summary-card">
+              {formData.supplierInvoiceNo && (
+                <div className="summary-row" style={{ borderBottom: '1px dashed var(--border)', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
+                  <span>Supplier Invoice No:</span>
+                  <span style={{ fontWeight: 600 }}>{formData.supplierInvoiceNo}</span>
+                </div>
+              )}
               <div className="summary-row"><span>Total Taxable Amount:</span><span>₹{summary.taxableAmount.toFixed(2)}</span></div>
               {isIGST ? (
                 <div className="summary-row"><span>Add: IGST:</span><span>₹{summary.igstTotal.toFixed(2)}</span></div>

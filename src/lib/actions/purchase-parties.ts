@@ -97,6 +97,7 @@ export async function syncCompanyBuyer() {
     name: profile.companyName || 'SHAKTI EXPORTS',
     gstin: profile.gstin || '24AAAAA0000A1Z5',
     pan: profile.pan || 'ABCDE1234F',
+    address: profile.companyAddress || 'G-1, Diamond Tower, Surat, Gujarat',
     isCompany: true,
   }
 
@@ -105,7 +106,6 @@ export async function syncCompanyBuyer() {
     await prisma.purchaseBuyer.create({
       data: {
         ...buyerData,
-        address: 'G-1, Diamond Tower',
         city: 'Surat',
         state: 'Gujarat',
         stateCode: '24',
@@ -113,18 +113,20 @@ export async function syncCompanyBuyer() {
       }
     })
   } else {
-    // Sync name, gstin, pan if they differ
+    // Sync name, gstin, pan, address if they differ
     if (
       companyBuyer.name !== buyerData.name ||
       companyBuyer.gstin !== buyerData.gstin ||
-      companyBuyer.pan !== buyerData.pan
+      companyBuyer.pan !== buyerData.pan ||
+      companyBuyer.address !== buyerData.address
     ) {
       await prisma.purchaseBuyer.update({
         where: { id: companyBuyer.id },
         data: {
           name: buyerData.name,
           gstin: buyerData.gstin,
-          pan: buyerData.pan
+          pan: buyerData.pan,
+          address: buyerData.address
         }
       })
     }

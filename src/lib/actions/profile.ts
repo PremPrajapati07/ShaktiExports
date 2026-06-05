@@ -11,6 +11,7 @@ export async function getProfile() {
       data: {
         id: 1,
         companyName: 'SHAKTI EXPORTS',
+        companyAddress: 'G-1, Diamond Tower, Surat, Gujarat',
         gstin: '24AAAAA0000A1Z5',
         pan: 'ABCDE1234F',
         terms: 'CREDIT',
@@ -56,6 +57,7 @@ export async function updateProfile(data: any) {
     console.error('Failed to sync company buyer during profile update:', err)
   }
   revalidatePath('/', 'layout')
+  revalidatePath('/profile')
   return profile
 }
 

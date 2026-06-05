@@ -118,6 +118,7 @@ export async function createPurchaseInvoice(data: any) {
     const inv = await tx.purchaseInvoice.create({
       data: {
         invoiceNo,
+        supplierInvoiceNo: data.supplierInvoiceNo,
         date: new Date(data.date),
         type: data.type,
         diamondType: data.diamondType,
@@ -223,6 +224,7 @@ export async function updatePurchaseInvoice(id: number, data: any) {
     const inv = await tx.purchaseInvoice.update({
       where: { id },
       data: {
+        supplierInvoiceNo: data.supplierInvoiceNo,
         date: new Date(data.date),
         type: data.type,
         diamondType: data.diamondType,
