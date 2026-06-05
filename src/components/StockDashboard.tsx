@@ -120,6 +120,7 @@ export function StockDashboard({ overview, ledger }: { overview: any, ledger: an
       'Diamond Type',
       'Carats',
       'Rate (₹/Ct)',
+      'Total Amount (₹)',
       'Party Name',
       'Party Type',
       'Reference',
@@ -134,6 +135,7 @@ export function StockDashboard({ overview, ledger }: { overview: any, ledger: an
         `"${entry.diamondType === 'LabGrown' ? 'Lab Grown' : 'Natural'}"`,
         (isNegative ? '-' : '+') + Math.abs(entry.carats).toString(),
         entry.rate ? entry.rate.toString() : '',
+        entry.rate ? (Math.abs(entry.carats) * entry.rate).toFixed(2) : '',
         `"${entry.partyName || ''}"`,
         `"${entry.partyType || ''}"`,
         `"${entry.referenceNo || ''}"`,
@@ -225,6 +227,7 @@ export function StockDashboard({ overview, ledger }: { overview: any, ledger: an
                 <th>Diamond</th>
                 <th>Carats</th>
                 <th>Rate (₹/Ct)</th>
+                <th>Total Value (₹)</th>
                 <th>Party</th>
                 <th>Reference</th>
                 <th>Remarks</th>
@@ -252,6 +255,9 @@ export function StockDashboard({ overview, ledger }: { overview: any, ledger: an
                       {isNegative ? '-' : '+'}{Math.abs(entry.carats).toFixed(2)}
                     </td>
                     <td>{entry.rate ? `₹${entry.rate.toLocaleString()}` : '-'}</td>
+                    <td style={{ fontWeight: entry.rate ? '500' : 'normal' }}>
+                      {entry.rate ? `₹${(Math.abs(entry.carats) * entry.rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
+                    </td>
                   <td>
                     {entry.partyName ? (
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
