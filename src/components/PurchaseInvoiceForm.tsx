@@ -567,21 +567,19 @@ export function PurchaseInvoiceForm({
 
       {/* Navigation */}
       <div className="form-navigation">
-        <div className="form-navigation-inner">
-          <button type="button" onClick={() => setStep(s => s - 1)} disabled={step === 1 || loading} className="btn btn-outline">
-            <ChevronLeft size={20} /> Previous
+        <button type="button" onClick={() => setStep(s => s - 1)} disabled={step === 1 || loading} className="btn btn-outline">
+          <ChevronLeft size={20} /> Previous
+        </button>
+        {step < TOTAL_STEPS ? (
+          <button type="button" onClick={() => setStep(s => s + 1)} className="btn btn-primary">
+            Next <ChevronRight size={20} />
           </button>
-          {step < TOTAL_STEPS ? (
-            <button type="button" onClick={() => setStep(s => s + 1)} className="btn btn-primary">
-              Next <ChevronRight size={20} />
-            </button>
-          ) : (
-            <button type="button" onClick={handleSubmit} className="btn btn-success"
-              disabled={loading || !formData.supplierId}>
-              <Save size={20} /> {loading ? 'Saving...' : 'Generate Purchase Invoice'}
-            </button>
-          )}
-        </div>
+        ) : (
+          <button type="button" onClick={handleSubmit} className="btn btn-success"
+            disabled={loading || !formData.supplierId}>
+            <Save size={20} /> {loading ? 'Saving...' : 'Generate Purchase Invoice'}
+          </button>
+        )}
       </div>
 
       {/* Inline Supplier Creation Modal */}

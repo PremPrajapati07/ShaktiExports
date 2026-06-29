@@ -812,35 +812,33 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
       </div>
 
       <div className="form-navigation">
-        <div className="form-navigation-inner">
+        <button 
+          type="button"
+          onClick={() => setStep(s => s - 1)} 
+          disabled={step === 1 || loading}
+          className="btn btn-outline"
+        >
+          <ChevronLeft size={20} /> Previous
+        </button>
+        
+        {step < 7 ? (
           <button 
             type="button"
-            onClick={() => setStep(s => s - 1)} 
-            disabled={step === 1 || loading}
-            className="btn btn-outline"
+            onClick={() => setStep(s => s + 1)} 
+            className="btn btn-primary"
           >
-            <ChevronLeft size={20} /> Previous
+            Next <ChevronRight size={20} />
           </button>
-          
-          {step < 7 ? (
-            <button 
-              type="button"
-              onClick={() => setStep(s => s + 1)} 
-              className="btn btn-primary"
-            >
-              Next <ChevronRight size={20} />
-            </button>
-          ) : (
-            <button 
-              type="button"
-              onClick={handleSubmit} 
-              className="btn btn-success"
-              disabled={loading || !formData.billedToId}
-            >
-              <Save size={20} /> {loading ? 'Saving...' : 'Generate Invoice'}
-            </button>
-          )}
-        </div>
+        ) : (
+          <button 
+            type="button"
+            onClick={handleSubmit} 
+            className="btn btn-success"
+            disabled={loading || !formData.billedToId}
+          >
+            <Save size={20} /> {loading ? 'Saving...' : 'Generate Invoice'}
+          </button>
+        )}
       </div>
 
       {/* Inline Party Creation Modal */}
