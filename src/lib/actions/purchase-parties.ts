@@ -26,6 +26,7 @@ export async function createSupplier(data: any) {
   )
 
   revalidatePath('/purchase-suppliers')
+  return supplier
 }
 
 export async function updateSupplier(id: number, data: any) {

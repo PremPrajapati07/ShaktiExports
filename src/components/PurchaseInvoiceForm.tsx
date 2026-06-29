@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Trash2, Save, ChevronRight, ChevronLeft } from 'lucide-react'
+import { Plus, Trash2, Save, ChevronRight, ChevronLeft, X } from 'lucide-react'
 import { createPurchaseInvoice, updatePurchaseInvoice } from '@/lib/actions/purchase-invoices'
+import { createSupplier } from '@/lib/actions/purchase-parties'
 import { format } from 'date-fns'
 import { toWords } from 'number-to-words'
 
@@ -41,6 +42,15 @@ export function PurchaseInvoiceForm({
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState(1)
   const [hasRestoredDraft, setHasRestoredDraft] = useState(false)
+  const [supplierList, setSupplierList] = useState(suppliers)
+
+  // Inline Supplier Creation Modal
+  const [showSupplierModal, setShowSupplierModal] = useState(false)
+  const [supplierModalLoading, setSupplierModalLoading] = useState(false)
+  const [newSupplier, setNewSupplier] = useState({
+    name: '', address: '', city: '', state: 'Gujarat', stateCode: '24', gstin: '', pan: '',
+    bankerName: '', accountNo: '', ifsc: '', swiftCode: ''
+  })
 
   const [formData, setFormData] = useState({
     date: initialData?.date ? format(new Date(initialData.date), 'yyyy-MM-dd') : '',
@@ -177,17 +187,18 @@ export function PurchaseInvoiceForm({
   // Calculation
   useEffect(() => {
     let taxableAmount = 0, cgstTotal = 0, sgstTotal = 0, igstTotal = 0
+    const r2 = (v: number) => Math.round(v * 100) / 100
 
     const updatedItems = lineItems.map(item => {
-      const taxable = (item.quantity * item.rate) - (formData.type === 'Inter' ? (item.discount || 0) : 0)
+      const taxable = r2((item.quantity * item.rate) - (formData.type === 'Inter' ? (item.discount || 0) : 0))
       let cgst = 0, sgst = 0, igst = 0
       if (formData.type === 'Intra') {
-        igst = (taxable * (item.igstRate || 0)) / 100
+        igst = r2((taxable * (item.igstRate || 0)) / 100)
       } else {
-        cgst = (taxable * (item.cgstRate || 0)) / 100
-        sgst = (taxable * (item.sgstRate || 0)) / 100
+        cgst = r2((taxable * (item.cgstRate || 0)) / 100)
+        sgst = r2((taxable * (item.sgstRate || 0)) / 100)
       }
-      const total = taxable + cgst + sgst + igst
+      const total = r2(taxable + cgst + sgst + igst)
       taxableAmount += taxable; cgstTotal += cgst; sgstTotal += sgst; igstTotal += igst
       return { ...item, taxableValue: taxable, cgstAmount: cgst, sgstAmount: sgst, igstAmount: igst, total }
     })
@@ -201,14 +212,14 @@ export function PurchaseInvoiceForm({
     ))
     if (hasChanged) setLineItems(updatedItems)
 
-    const totalTax = cgstTotal + sgstTotal + igstTotal
-    const amountAfterTax = taxableAmount + totalTax
+    const totalTax = r2(cgstTotal + sgstTotal + igstTotal)
+    const amountAfterTax = r2(taxableAmount + totalTax)
     const totalValue = Math.round(amountAfterTax)
-    const roundOff = totalValue - amountAfterTax
+    const roundOff = r2(totalValue - amountAfterTax)
     const words = toWords(Math.max(totalValue, 0))
 
     setSummary({
-      taxableAmount, cgstTotal, sgstTotal, igstTotal, totalTax, amountAfterTax, roundOff, totalValue,
+      taxableAmount: r2(taxableAmount), cgstTotal: r2(cgstTotal), sgstTotal: r2(sgstTotal), igstTotal: r2(igstTotal), totalTax, amountAfterTax, roundOff, totalValue,
       totalWords: (words.charAt(0).toUpperCase() + words.slice(1)) + ' Only'
     })
   }, [lineItems, formData.type])
@@ -246,7 +257,7 @@ export function PurchaseInvoiceForm({
     }
   }
 
-  const selectedSupplier = suppliers.find(s => s.id === formData.supplierId)
+  const selectedSupplier = supplierList.find(s => s.id === formData.supplierId)
 
   // History chips for completed steps
   const stepSelections: Record<number, string> = {
@@ -332,7 +343,15 @@ export function PurchaseInvoiceForm({
       {/* Steps Progress */}
       <div className="steps-progress">
         {Array.from({ length: TOTAL_STEPS }, (_, i) => i + 1).map(s => (
-          <div key={s} className={`step-dot ${step >= s ? 'active' : ''}`}>{s}</div>
+          <button
+            key={s}
+            type="button"
+            className={`step-dot ${step >= s ? 'active' : ''}`}
+            onClick={() => { if (s <= step) setStep(s) }}
+            style={{ cursor: s <= step ? 'pointer' : 'default' }}
+          >
+            {s}
+          </button>
         ))}
       </div>
 
@@ -396,11 +415,19 @@ export function PurchaseInvoiceForm({
               {/* Supplier */}
               <div className="form-group" style={{ gridColumn: 'span 2' }}>
                 <label className="form-label">Supplier (From Whom Purchase)</label>
-                <select className="form-input" value={formData.supplierId}
-                  onChange={e => setFormData({ ...formData, supplierId: parseInt(e.target.value) })}>
-                  <option value={0}>Select Supplier</option>
-                  {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <select className="form-input" value={formData.supplierId}
+                    onChange={e => setFormData({ ...formData, supplierId: parseInt(e.target.value) })} style={{ flex: 1 }}>
+                    <option value={0}>Select Supplier</option>
+                    {supplierList.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                  <button type="button" className="btn btn-outline btn-sm" onClick={() => {
+                    setNewSupplier({ name: '', address: '', city: '', state: 'Gujarat', stateCode: '24', gstin: '', pan: '', bankerName: '', accountNo: '', ifsc: '', swiftCode: '' })
+                    setShowSupplierModal(true)
+                  }} style={{ whiteSpace: 'nowrap' }}>
+                    <Plus size={14} /> Create
+                  </button>
+                </div>
                 {selectedSupplier && (
                   <div className="selection-preview">
                     <p><strong>{selectedSupplier.address}</strong></p>
@@ -411,7 +438,7 @@ export function PurchaseInvoiceForm({
                     )}
                   </div>
                 )}
-                {suppliers.length === 0 && (
+                {supplierList.length === 0 && (
                   <p style={{ color: 'var(--error)', fontSize: '0.875rem', marginTop: '0.5rem' }}>
                     No suppliers found. <a href="/purchase-suppliers/create" style={{ color: 'var(--accent)' }}>Add one first →</a>
                   </p>
@@ -554,6 +581,94 @@ export function PurchaseInvoiceForm({
           </button>
         )}
       </div>
+
+      {/* Inline Supplier Creation Modal */}
+      {showSupplierModal && (
+        <div className="modal-overlay" onClick={() => setShowSupplierModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '650px' }}>
+            <div className="modal-header">
+              <h3>Create Supplier</h3>
+              <button type="button" className="icon-btn" onClick={() => setShowSupplierModal(false)}><X size={20} /></button>
+            </div>
+            <form onSubmit={async (e) => {
+              e.preventDefault()
+              setSupplierModalLoading(true)
+              try {
+                const created = await createSupplier(newSupplier)
+                if (created) {
+                  setSupplierList(prev => [...prev, created])
+                  setFormData(prev => ({ ...prev, supplierId: created.id, sellerGstin: created.gstin, sellerPan: created.pan, bankerName: created.bankerName || '', accountNo: created.accountNo || '', ifsc: created.ifsc || '', swiftCode: created.swiftCode || '' }))
+                }
+                setShowSupplierModal(false)
+              } catch {
+                alert('Failed to create supplier')
+              } finally {
+                setSupplierModalLoading(false)
+              }
+            }}>
+              <div className="form-grid" style={{ padding: '1.5rem' }}>
+                <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="form-label">Supplier Name *</label>
+                  <input type="text" className="form-input" required value={newSupplier.name} onChange={e => setNewSupplier({...newSupplier, name: e.target.value})} placeholder="Supplier company name" />
+                </div>
+                <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="form-label">Address *</label>
+                  <textarea className="form-input" rows={2} required value={newSupplier.address} onChange={e => setNewSupplier({...newSupplier, address: e.target.value})} placeholder="Full address..." />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">City *</label>
+                  <input type="text" className="form-input" required value={newSupplier.city} onChange={e => setNewSupplier({...newSupplier, city: e.target.value})} placeholder="Surat" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">State *</label>
+                  <input type="text" className="form-input" required value={newSupplier.state} onChange={e => setNewSupplier({...newSupplier, state: e.target.value})} placeholder="Gujarat" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">State Code *</label>
+                  <input type="text" className="form-input" required value={newSupplier.stateCode} onChange={e => setNewSupplier({...newSupplier, stateCode: e.target.value})} placeholder="24" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">GSTIN *</label>
+                  <input type="text" className="form-input" required value={newSupplier.gstin} onChange={e => {
+                    const val = e.target.value.toUpperCase()
+                    if (val.length >= 15) {
+                      setNewSupplier({...newSupplier, gstin: val, pan: val.substring(2, 12)})
+                    } else {
+                      setNewSupplier({...newSupplier, gstin: val})
+                    }
+                  }} placeholder="24AAAAA0000A1Z5" />
+                </div>
+                <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="form-label">PAN *</label>
+                  <input type="text" className="form-input" required value={newSupplier.pan} onChange={e => setNewSupplier({...newSupplier, pan: e.target.value.toUpperCase()})} placeholder="Auto-filled from GSTIN" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Bank Name</label>
+                  <input type="text" className="form-input" value={newSupplier.bankerName} onChange={e => setNewSupplier({...newSupplier, bankerName: e.target.value})} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Account No</label>
+                  <input type="text" className="form-input" value={newSupplier.accountNo} onChange={e => setNewSupplier({...newSupplier, accountNo: e.target.value})} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">IFSC Code</label>
+                  <input type="text" className="form-input" value={newSupplier.ifsc} onChange={e => setNewSupplier({...newSupplier, ifsc: e.target.value})} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">SWIFT Code</label>
+                  <input type="text" className="form-input" value={newSupplier.swiftCode} onChange={e => setNewSupplier({...newSupplier, swiftCode: e.target.value})} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', padding: '0 1.5rem 1.5rem' }}>
+                <button type="button" className="btn btn-outline" onClick={() => setShowSupplierModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={supplierModalLoading}>
+                  {supplierModalLoading ? 'Creating...' : 'Create & Select'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

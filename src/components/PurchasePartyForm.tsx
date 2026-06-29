@@ -123,7 +123,11 @@ export function PurchasePartyForm({
                 disabled={initialData?.isCompany && ['name', 'gstin', 'pan'].includes(f.key)}
                 onChange={e => {
                   const val = ['gstin', 'pan'].includes(f.key) ? e.target.value.toUpperCase() : e.target.value
-                  setData({ ...data, [f.key]: val })
+                  if (f.key === 'gstin' && val.length >= 15) {
+                    setData({ ...data, gstin: val, pan: val.substring(2, 12) })
+                  } else {
+                    setData({ ...data, [f.key]: val })
+                  }
                 }}
               />
             )}

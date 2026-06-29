@@ -21,7 +21,11 @@ export function PartyForm({ party, type = 'Party' }: { party?: any, type?: strin
   const handleChange = (e: any) => {
     const { name, value } = e.target
     const val = ['gstin', 'pan'].includes(name) ? value.toUpperCase() : value
-    setFormData(prev => ({ ...prev, [name]: val }))
+    if (name === 'gstin' && val.length >= 15) {
+      setFormData(prev => ({ ...prev, gstin: val, pan: val.substring(2, 12) }))
+    } else {
+      setFormData(prev => ({ ...prev, [name]: val }))
+    }
   }
 
   const handleSubmit = async (e: any) => {

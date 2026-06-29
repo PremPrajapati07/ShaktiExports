@@ -507,7 +507,29 @@ h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.75rem; }
 .words-block { margin-top: 2rem; padding: 1rem; background: var(--sidebar-hover); border-radius: var(--radius); }
 .words-text { font-weight: 600; font-style: italic; color: var(--primary); }
 
-.form-navigation { display: flex; justify-content: space-between; margin-top: 2rem; }
+.form-navigation { 
+  display: flex; 
+  justify-content: space-between; 
+  margin-top: 2rem; 
+  position: sticky;
+  bottom: 0;
+  background-color: var(--background);
+  padding: 1.25rem 0;
+  border-top: 1px solid var(--border);
+  z-index: 10;
+}
+
+.step-dot.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+  cursor: pointer;
+}
+
+.step-dot:not(.active) {
+  cursor: default;
+}
 
 .btn-success { background: var(--success); color: white; }
 .btn-success:hover { background: #16a34a; }
@@ -517,6 +539,7 @@ h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.75rem; }
 .mono { font-family: monospace; font-size: 0.875rem; }
 
 .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.875rem; }
+
 
 .icon-btn {
   display: inline-flex;
@@ -860,4 +883,46 @@ h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.75rem; }
   background: rgba(239, 68, 68, 0.1);
   border-color: var(--error);
 }
+
+/* Modal overlay and content styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--primary);
+}
+
 

@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Trash2, Save, Download, ChevronRight, ChevronLeft } from 'lucide-react'
+import { Plus, Trash2, Save, Download, ChevronRight, ChevronLeft, X } from 'lucide-react'
 import { createInvoice, updateInvoice } from '@/lib/actions/invoices'
+import { createParty } from '@/lib/actions/parties'
 import { format } from 'date-fns'
 import { toWords } from 'number-to-words'
 
@@ -47,6 +48,15 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState(1)
   const [hasRestoredDraft, setHasRestoredDraft] = useState(false)
+  const [partyList, setPartyList] = useState(parties)
+
+  // Inline Party Creation Modal
+  const [showPartyModal, setShowPartyModal] = useState(false)
+  const [partyModalType, setPartyModalType] = useState<'BilledTo' | 'ShippedTo'>('BilledTo')
+  const [partyModalLoading, setPartyModalLoading] = useState(false)
+  const [newParty, setNewParty] = useState({
+    name: '', address: '', city: '', state: 'Gujarat', stateCode: '24', gstin: '', pan: ''
+  })
 
   // Form State
   const [formData, setFormData] = useState({
@@ -215,18 +225,19 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
     let sgstTotal = 0
     let igstTotal = 0
 
+    const r2 = (v: number) => Math.round(v * 100) / 100
     const updatedItems = lineItems.map(item => {
-      const taxable = (item.quantity * item.rate) - (formData.type === 'Inter' ? (item.discount || 0) : 0)
+      const taxable = r2((item.quantity * item.rate) - (formData.type === 'Inter' ? (item.discount || 0) : 0))
       let cgst = 0, sgst = 0, igst = 0
       
       if (formData.type === 'Intra') {
-        cgst = (taxable * (item.cgstRate || 0)) / 100
-        sgst = (taxable * (item.sgstRate || 0)) / 100
+        cgst = r2((taxable * (item.cgstRate || 0)) / 100)
+        sgst = r2((taxable * (item.sgstRate || 0)) / 100)
       } else {
-        igst = (taxable * (item.igstRate || 0)) / 100
+        igst = r2((taxable * (item.igstRate || 0)) / 100)
       }
 
-      const total = taxable + cgst + sgst + igst
+      const total = r2(taxable + cgst + sgst + igst)
       
       taxableAmount += taxable
       cgstTotal += cgst
@@ -256,16 +267,16 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
       setLineItems(updatedItems)
     }
 
-    const totalTax = cgstTotal + sgstTotal + igstTotal
-    const amountAfterTax = taxableAmount + totalTax
+    const totalTax = r2(cgstTotal + sgstTotal + igstTotal)
+    const amountAfterTax = r2(taxableAmount + totalTax)
     const totalValue = Math.round(amountAfterTax)
-    const roundOff = totalValue - amountAfterTax
+    const roundOff = r2(totalValue - amountAfterTax)
 
     setSummary({
-      taxableAmount,
-      cgstTotal,
-      sgstTotal,
-      igstTotal,
+      taxableAmount: r2(taxableAmount),
+      cgstTotal: r2(cgstTotal),
+      sgstTotal: r2(sgstTotal),
+      igstTotal: r2(igstTotal),
       totalTax,
       amountAfterTax,
       roundOff,
@@ -336,13 +347,13 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
     }
   }
 
-  const selectedBilledTo = parties.find(p => p.id === formData.billedToId)
-  const selectedShippedTo = parties.find(p => p.id === formData.shippedToId)
+  const selectedBilledTo = partyList.find(p => p.id === formData.billedToId)
+  const selectedShippedTo = partyList.find(p => p.id === formData.shippedToId)
 
   // Step labels for history header
   const stepLabels: Record<number, string> = { 1: 'Type', 2: 'Diamond', 3: 'Header', 4: 'Parties', 5: 'Items', 6: 'Summary', 7: 'Declaration' }
   const stepSelections: Record<number, string> = {
-    1: formData.type === 'Intra' ? 'Intra (IGST)' : 'Inter (CGST+SGST)',
+    1: formData.type === 'Intra' ? 'Intra (CGST+SGST)' : 'Inter (IGST)',
     2: formData.diamondType === 'LabGrown' ? 'Lab Grown (CVD)' : 'Natural Diamond',
     3: formData.date ? `Date: ${formData.date}` : '',
     4: selectedBilledTo ? selectedBilledTo.name : '',
@@ -402,9 +413,15 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
       {/* Steps Progress */}
       <div className="steps-progress">
         {[1, 2, 3, 4, 5, 6, 7].map(s => (
-          <div key={s} className={`step-dot ${step >= s ? 'active' : ''}`}>
+          <button
+            key={s}
+            type="button"
+            className={`step-dot ${step >= s ? 'active' : ''}`}
+            onClick={() => { if (s <= step) setStep(s) }}
+            style={{ cursor: s <= step ? 'pointer' : 'default' }}
+          >
             {s}
-          </div>
+          </button>
         ))}
       </div>
 
@@ -423,7 +440,7 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
                 />
                 <div className="radio-content">
                   <span className="radio-title">Intra-state</span>
-                  <span className="radio-desc">IGST (Outside Gujarat)</span>
+                  <span className="radio-desc">CGST + SGST (Within Gujarat)</span>
                 </div>
               </label>
               <label className="radio-card">
@@ -436,7 +453,7 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
                 />
                 <div className="radio-content">
                   <span className="radio-title">Inter-state</span>
-                  <span className="radio-desc">CGST + SGST (Within Gujarat)</span>
+                  <span className="radio-desc">IGST (Outside Gujarat)</span>
                 </div>
               </label>
             </div>
@@ -565,16 +582,22 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
             <div className="form-grid">
               <div className="form-group">
                 <label className="form-label">Billed To (Party)</label>
-                <select 
-                  className="form-input" 
-                  value={formData.billedToId} 
-                  onChange={(e) => setFormData({...formData, billedToId: parseInt(e.target.value)})}
-                >
-                  <option value={0}>Select Party</option>
-                  {parties.filter(p => p.type === 'BilledTo' || p.type === 'Both').map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <select 
+                    className="form-input" 
+                    value={formData.billedToId} 
+                    onChange={(e) => setFormData({...formData, billedToId: parseInt(e.target.value)})}
+                    style={{ flex: 1 }}
+                  >
+                    <option value={0}>Select Party</option>
+                    {partyList.filter(p => p.type === 'BilledTo' || p.type === 'Both').map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                  <button type="button" className="btn btn-outline btn-sm" onClick={() => { setPartyModalType('BilledTo'); setNewParty({ name: '', address: '', city: '', state: 'Gujarat', stateCode: '24', gstin: '', pan: '' }); setShowPartyModal(true) }} style={{ whiteSpace: 'nowrap' }}>
+                    <Plus size={14} /> Create
+                  </button>
+                </div>
                 {selectedBilledTo && (
                   <div className="selection-preview">
                     <p><strong>{selectedBilledTo.address}</strong></p>
@@ -585,17 +608,23 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
               </div>
               <div className="form-group">
                 <label className="form-label">Shipped To (Consignee)</label>
-                <select 
-                  className="form-input" 
-                  value={formData.shippedToId} 
-                  onChange={(e) => setFormData({...formData, shippedToId: parseInt(e.target.value)})}
-                >
-                  <option value={0}>Select Consignee</option>
-                  <option value={-1}>Same as Billed To</option>
-                  {parties.filter(p => p.type === 'ShippedTo' || p.type === 'Both').map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <select 
+                    className="form-input" 
+                    value={formData.shippedToId} 
+                    onChange={(e) => setFormData({...formData, shippedToId: parseInt(e.target.value)})}
+                    style={{ flex: 1 }}
+                  >
+                    <option value={0}>Select Consignee</option>
+                    <option value={-1}>Same as Billed To</option>
+                    {partyList.filter(p => p.type === 'ShippedTo' || p.type === 'Both').map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                  <button type="button" className="btn btn-outline btn-sm" onClick={() => { setPartyModalType('ShippedTo'); setNewParty({ name: '', address: '', city: '', state: 'Gujarat', stateCode: '24', gstin: '', pan: '' }); setShowPartyModal(true) }} style={{ whiteSpace: 'nowrap' }}>
+                    <Plus size={14} /> Create
+                  </button>
+                </div>
                 {formData.shippedToId === -1 && selectedBilledTo && (
                   <div className="selection-preview">
                     <p>Same as billed to party</p>
@@ -811,6 +840,80 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
           </button>
         )}
       </div>
+
+      {/* Inline Party Creation Modal */}
+      {showPartyModal && (
+        <div className="modal-overlay" onClick={() => setShowPartyModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <div className="modal-header">
+              <h3>Create {partyModalType === 'BilledTo' ? 'Party (Billed To)' : 'Consignee (Shipped To)'}</h3>
+              <button type="button" className="icon-btn" onClick={() => setShowPartyModal(false)}><X size={20} /></button>
+            </div>
+            <form onSubmit={async (e) => {
+              e.preventDefault()
+              setPartyModalLoading(true)
+              try {
+                const created = await createParty({ ...newParty, type: partyModalType })
+                setPartyList(prev => [...prev, created])
+                if (partyModalType === 'BilledTo') {
+                  setFormData(prev => ({ ...prev, billedToId: created.id }))
+                } else {
+                  setFormData(prev => ({ ...prev, shippedToId: created.id }))
+                }
+                setShowPartyModal(false)
+              } catch {
+                alert('Failed to create party')
+              } finally {
+                setPartyModalLoading(false)
+              }
+            }}>
+              <div className="form-grid" style={{ padding: '1.5rem' }}>
+                <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="form-label">Party Name *</label>
+                  <input type="text" className="form-input" required value={newParty.name} onChange={e => setNewParty({...newParty, name: e.target.value})} placeholder="e.g. Acme Diamond Corp" />
+                </div>
+                <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="form-label">Address *</label>
+                  <textarea className="form-input" rows={2} required value={newParty.address} onChange={e => setNewParty({...newParty, address: e.target.value})} placeholder="Full address..." />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">City *</label>
+                  <input type="text" className="form-input" required value={newParty.city} onChange={e => setNewParty({...newParty, city: e.target.value})} placeholder="Surat" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">State *</label>
+                  <input type="text" className="form-input" required value={newParty.state} onChange={e => setNewParty({...newParty, state: e.target.value})} placeholder="Gujarat" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">State Code *</label>
+                  <input type="text" className="form-input" required value={newParty.stateCode} onChange={e => setNewParty({...newParty, stateCode: e.target.value})} placeholder="24" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">GSTIN *</label>
+                  <input type="text" className="form-input" required value={newParty.gstin} onChange={e => {
+                    const val = e.target.value.toUpperCase()
+                    if (val.length >= 15) {
+                      setNewParty({...newParty, gstin: val, pan: val.substring(2, 12)})
+                    } else {
+                      setNewParty({...newParty, gstin: val})
+                    }
+                  }} placeholder="24AAAAA0000A1Z5" />
+                </div>
+                <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="form-label">PAN *</label>
+                  <input type="text" className="form-input" required value={newParty.pan} onChange={e => setNewParty({...newParty, pan: e.target.value.toUpperCase()})} placeholder="Auto-filled from GSTIN" />
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', padding: '0 1.5rem 1.5rem' }}>
+                <button type="button" className="btn btn-outline" onClick={() => setShowPartyModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={partyModalLoading}>
+                  {partyModalLoading ? 'Creating...' : 'Create & Select'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   )
