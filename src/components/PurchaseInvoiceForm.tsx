@@ -584,7 +584,7 @@ export function PurchaseInvoiceForm({
 
       {/* Inline Supplier Creation Modal */}
       {showSupplierModal && (
-        <div className="modal-overlay" onClick={() => setShowSupplierModal(false)}>
+        <div className="modal-overlay" onClick={() => setShowSupplierModal(false)} style={{ height: '770px' }}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '650px' }}>
             <div className="modal-header">
               <h3>Create Supplier</h3>
@@ -609,54 +609,54 @@ export function PurchaseInvoiceForm({
               <div className="form-grid" style={{ padding: '1.5rem' }}>
                 <div className="form-group" style={{ gridColumn: 'span 2' }}>
                   <label className="form-label">Supplier Name *</label>
-                  <input type="text" className="form-input" required value={newSupplier.name} onChange={e => setNewSupplier({...newSupplier, name: e.target.value})} placeholder="Supplier company name" />
+                  <input type="text" className="form-input" required value={newSupplier.name} onChange={e => setNewSupplier({ ...newSupplier, name: e.target.value })} placeholder="Supplier company name" />
                 </div>
                 <div className="form-group" style={{ gridColumn: 'span 2' }}>
                   <label className="form-label">Address *</label>
-                  <textarea className="form-input" rows={2} required value={newSupplier.address} onChange={e => setNewSupplier({...newSupplier, address: e.target.value})} placeholder="Full address..." />
+                  <textarea className="form-input" rows={2} required value={newSupplier.address} onChange={e => setNewSupplier({ ...newSupplier, address: e.target.value })} placeholder="Full address..." />
                 </div>
                 <div className="form-group">
                   <label className="form-label">City *</label>
-                  <input type="text" className="form-input" required value={newSupplier.city} onChange={e => setNewSupplier({...newSupplier, city: e.target.value})} placeholder="Surat" />
+                  <input type="text" className="form-input" required value={newSupplier.city} onChange={e => setNewSupplier({ ...newSupplier, city: e.target.value })} placeholder="Surat" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">State *</label>
-                  <input type="text" className="form-input" required value={newSupplier.state} onChange={e => setNewSupplier({...newSupplier, state: e.target.value})} placeholder="Gujarat" />
+                  <input type="text" className="form-input" required value={newSupplier.state} onChange={e => setNewSupplier({ ...newSupplier, state: e.target.value })} placeholder="Gujarat" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">State Code *</label>
-                  <input type="text" className="form-input" required value={newSupplier.stateCode} onChange={e => setNewSupplier({...newSupplier, stateCode: e.target.value})} placeholder="24" />
+                  <input type="text" className="form-input" required value={newSupplier.stateCode} onChange={e => setNewSupplier({ ...newSupplier, stateCode: e.target.value })} placeholder="24" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">GSTIN *</label>
                   <input type="text" className="form-input" required value={newSupplier.gstin} onChange={e => {
                     const val = e.target.value.toUpperCase()
                     if (val.length >= 15) {
-                      setNewSupplier({...newSupplier, gstin: val, pan: val.substring(2, 12)})
+                      setNewSupplier({ ...newSupplier, gstin: val, pan: val.substring(2, 12) })
                     } else {
-                      setNewSupplier({...newSupplier, gstin: val})
+                      setNewSupplier({ ...newSupplier, gstin: val })
                     }
                   }} placeholder="24AAAAA0000A1Z5" />
                 </div>
                 <div className="form-group" style={{ gridColumn: 'span 2' }}>
                   <label className="form-label">PAN *</label>
-                  <input type="text" className="form-input" required value={newSupplier.pan} onChange={e => setNewSupplier({...newSupplier, pan: e.target.value.toUpperCase()})} placeholder="Auto-filled from GSTIN" />
+                  <input type="text" className="form-input" required value={newSupplier.pan} onChange={e => setNewSupplier({ ...newSupplier, pan: e.target.value.toUpperCase() })} placeholder="Auto-filled from GSTIN" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Bank Name</label>
-                  <input type="text" className="form-input" value={newSupplier.bankerName} onChange={e => setNewSupplier({...newSupplier, bankerName: e.target.value})} />
+                  <input type="text" className="form-input" value={newSupplier.bankerName} onChange={e => setNewSupplier({ ...newSupplier, bankerName: e.target.value })} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Account No</label>
-                  <input type="text" className="form-input" value={newSupplier.accountNo} onChange={e => setNewSupplier({...newSupplier, accountNo: e.target.value})} />
+                  <input type="text" className="form-input" value={newSupplier.accountNo} onChange={e => setNewSupplier({ ...newSupplier, accountNo: e.target.value })} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">IFSC Code</label>
-                  <input type="text" className="form-input" value={newSupplier.ifsc} onChange={e => setNewSupplier({...newSupplier, ifsc: e.target.value})} />
+                  <input type="text" className="form-input" value={newSupplier.ifsc} onChange={e => setNewSupplier({ ...newSupplier, ifsc: e.target.value })} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">SWIFT Code</label>
-                  <input type="text" className="form-input" value={newSupplier.swiftCode} onChange={e => setNewSupplier({...newSupplier, swiftCode: e.target.value})} />
+                  <input type="text" className="form-input" value={newSupplier.swiftCode} onChange={e => setNewSupplier({ ...newSupplier, swiftCode: e.target.value })} />
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', padding: '0 1.5rem 1.5rem' }}>

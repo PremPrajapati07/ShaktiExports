@@ -207,13 +207,13 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
   useEffect(() => {
     if (lastDiamondTypeRef.current !== formData.diamondType) {
       lastDiamondTypeRef.current = formData.diamondType
-      const desc = formData.diamondType === 'LabGrown' 
-        ? 'Cut & Polished Diamond (CVD)' 
+      const desc = formData.diamondType === 'LabGrown'
+        ? 'Cut & Polished Diamond (CVD)'
         : 'Cut & Polished Diamond'
       const hsn = formData.diamondType === 'LabGrown'
         ? '71049120'
         : '71023910'
-      
+
       setLineItems(prev => prev.map(item => ({ ...item, description: desc, hsn })))
     }
   }, [formData.diamondType])
@@ -229,7 +229,7 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
     const updatedItems = lineItems.map(item => {
       const taxable = r2((item.quantity * item.rate) - (formData.type === 'Inter' ? (item.discount || 0) : 0))
       let cgst = 0, sgst = 0, igst = 0
-      
+
       if (formData.type === 'Intra') {
         cgst = r2((taxable * (item.cgstRate || 0)) / 100)
         sgst = r2((taxable * (item.sgstRate || 0)) / 100)
@@ -238,12 +238,12 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
       }
 
       const total = r2(taxable + cgst + sgst + igst)
-      
+
       taxableAmount += taxable
       cgstTotal += cgst
       sgstTotal += sgst
       igstTotal += igst
-      
+
       return {
         ...item,
         taxableValue: taxable,
@@ -315,7 +315,7 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
   }
 
   const handleItemChange = (id: string, field: keyof LineItem, value: any) => {
-    setLineItems(lineItems.map(item => 
+    setLineItems(lineItems.map(item =>
       item.id === id ? { ...item, [field]: value } : item
     ))
   }
@@ -431,12 +431,12 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
             <h2>Invoice Type</h2>
             <div className="radio-group">
               <label className="radio-card">
-                <input 
-                  type="radio" 
-                  name="type" 
-                  value="Intra" 
-                  checked={formData.type === 'Intra'} 
-                  onChange={(e) => setFormData({...formData, type: e.target.value as any})}
+                <input
+                  type="radio"
+                  name="type"
+                  value="Intra"
+                  checked={formData.type === 'Intra'}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
                 />
                 <div className="radio-content">
                   <span className="radio-title">Intra-state</span>
@@ -444,12 +444,12 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
                 </div>
               </label>
               <label className="radio-card">
-                <input 
-                  type="radio" 
-                  name="type" 
-                  value="Inter" 
-                  checked={formData.type === 'Inter'} 
-                  onChange={(e) => setFormData({...formData, type: e.target.value as any})}
+                <input
+                  type="radio"
+                  name="type"
+                  value="Inter"
+                  checked={formData.type === 'Inter'}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
                 />
                 <div className="radio-content">
                   <span className="radio-title">Inter-state</span>
@@ -465,12 +465,12 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
             <h2>Diamond Type</h2>
             <div className="radio-group">
               <label className="radio-card">
-                <input 
-                  type="radio" 
-                  name="diamondType" 
-                  value="LabGrown" 
-                  checked={formData.diamondType === 'LabGrown'} 
-                  onChange={(e) => setFormData({...formData, diamondType: e.target.value as any})}
+                <input
+                  type="radio"
+                  name="diamondType"
+                  value="LabGrown"
+                  checked={formData.diamondType === 'LabGrown'}
+                  onChange={(e) => setFormData({ ...formData, diamondType: e.target.value as any })}
                 />
                 <div className="radio-content">
                   <span className="radio-title">Lab Grown (CVD)</span>
@@ -478,12 +478,12 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
                 </div>
               </label>
               <label className="radio-card">
-                <input 
-                  type="radio" 
-                  name="diamondType" 
-                  value="Natural" 
-                  checked={formData.diamondType === 'Natural'} 
-                  onChange={(e) => setFormData({...formData, diamondType: e.target.value as any})}
+                <input
+                  type="radio"
+                  name="diamondType"
+                  value="Natural"
+                  checked={formData.diamondType === 'Natural'}
+                  onChange={(e) => setFormData({ ...formData, diamondType: e.target.value as any })}
                 />
                 <div className="radio-content">
                   <span className="radio-title">Natural Diamond</span>
@@ -500,75 +500,75 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
             <div className="form-grid">
               <div className="form-group">
                 <label className="form-label">Invoice Date</label>
-                <input 
-                  type="date" 
-                  className="form-input" 
-                  value={formData.date} 
-                  onChange={(e) => setFormData({...formData, date: e.target.value})}
+                <input
+                  type="date"
+                  className="form-input"
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                 />
               </div>
               <div className="form-group">
                 <label className="form-label">Our GSTIN</label>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  value={formData.gstin} 
-                  onChange={(e) => setFormData({...formData, gstin: e.target.value.toUpperCase()})}
+                <input
+                  type="text"
+                  className="form-input"
+                  value={formData.gstin}
+                  onChange={(e) => setFormData({ ...formData, gstin: e.target.value.toUpperCase() })}
                 />
               </div>
               <div className="form-group">
                 <label className="form-label">Our PAN</label>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  value={formData.pan} 
-                  onChange={(e) => setFormData({...formData, pan: e.target.value.toUpperCase()})}
+                <input
+                  type="text"
+                  className="form-input"
+                  value={formData.pan}
+                  onChange={(e) => setFormData({ ...formData, pan: e.target.value.toUpperCase() })}
                 />
               </div>
               <div className="form-group">
                 <label className="form-label">Terms</label>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  value={formData.terms} 
-                  onChange={(e) => setFormData({...formData, terms: e.target.value})}
+                <input
+                  type="text"
+                  className="form-input"
+                  value={formData.terms}
+                  onChange={(e) => setFormData({ ...formData, terms: e.target.value })}
                 />
               </div>
               <div className="form-group">
                 <label className="form-label">Banker</label>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  value={formData.banker} 
-                  onChange={(e) => setFormData({...formData, banker: e.target.value})}
+                <input
+                  type="text"
+                  className="form-input"
+                  value={formData.banker}
+                  onChange={(e) => setFormData({ ...formData, banker: e.target.value })}
                 />
               </div>
               <div className="form-group">
                 <label className="form-label">Account No</label>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  value={formData.accountNo} 
-                  onChange={(e) => setFormData({...formData, accountNo: e.target.value})}
+                <input
+                  type="text"
+                  className="form-input"
+                  value={formData.accountNo}
+                  onChange={(e) => setFormData({ ...formData, accountNo: e.target.value })}
                 />
               </div>
               <div className="form-group">
                 <label className="form-label">IFSC</label>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  value={formData.ifsc} 
-                  onChange={(e) => setFormData({...formData, ifsc: e.target.value})}
+                <input
+                  type="text"
+                  className="form-input"
+                  value={formData.ifsc}
+                  onChange={(e) => setFormData({ ...formData, ifsc: e.target.value })}
                 />
               </div>
               {formData.type === 'Inter' && (
                 <div className="form-group">
                   <label className="form-label">District Origin Code</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    value={formData.districtOriginCode} 
-                    onChange={(e) => setFormData({...formData, districtOriginCode: e.target.value})}
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={formData.districtOriginCode}
+                    onChange={(e) => setFormData({ ...formData, districtOriginCode: e.target.value })}
                   />
                 </div>
               )}
@@ -583,10 +583,10 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
               <div className="form-group">
                 <label className="form-label">Billed To (Party)</label>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <select 
-                    className="form-input" 
-                    value={formData.billedToId} 
-                    onChange={(e) => setFormData({...formData, billedToId: parseInt(e.target.value)})}
+                  <select
+                    className="form-input"
+                    value={formData.billedToId}
+                    onChange={(e) => setFormData({ ...formData, billedToId: parseInt(e.target.value) })}
                     style={{ flex: 1 }}
                   >
                     <option value={0}>Select Party</option>
@@ -609,10 +609,10 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
               <div className="form-group">
                 <label className="form-label">Shipped To (Consignee)</label>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <select 
-                    className="form-input" 
-                    value={formData.shippedToId} 
-                    onChange={(e) => setFormData({...formData, shippedToId: parseInt(e.target.value)})}
+                  <select
+                    className="form-input"
+                    value={formData.shippedToId}
+                    onChange={(e) => setFormData({ ...formData, shippedToId: parseInt(e.target.value) })}
                     style={{ flex: 1 }}
                   >
                     <option value={0}>Select Consignee</option>
@@ -715,20 +715,20 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
                 <Plus size={16} /> Add Row
               </button>
             </div>
-            
+
             <div className="totals-row">
-               <div className="total-item">
-                  <span>Total Taxable:</span>
-                  <strong>₹{summary.taxableAmount.toFixed(2)}</strong>
-               </div>
-               <div className="total-item">
-                  <span>Total Tax:</span>
-                  <strong>₹{summary.totalTax.toFixed(2)}</strong>
-               </div>
-               <div className="total-item grand">
-                  <span>Grand Total:</span>
-                  <strong>₹{summary.totalValue.toLocaleString()}</strong>
-               </div>
+              <div className="total-item">
+                <span>Total Taxable:</span>
+                <strong>₹{summary.taxableAmount.toFixed(2)}</strong>
+              </div>
+              <div className="total-item">
+                <span>Total Tax:</span>
+                <strong>₹{summary.totalTax.toFixed(2)}</strong>
+              </div>
+              <div className="total-item grand">
+                <span>Grand Total:</span>
+                <strong>₹{summary.totalValue.toLocaleString()}</strong>
+              </div>
             </div>
           </section>
         )}
@@ -787,11 +787,11 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
             <h2>Declaration & Terms</h2>
             <div className="form-group">
               <label className="form-label">Select Template</label>
-              <select 
-                className="form-input" 
+              <select
+                className="form-input"
                 onChange={(e) => {
                   const dec = declarations.find(d => d.id === parseInt(e.target.value))
-                  if (dec) setFormData({...formData, declarationText: dec.body})
+                  if (dec) setFormData({ ...formData, declarationText: dec.body })
                 }}
               >
                 <option value="">Select Template</option>
@@ -800,11 +800,11 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
             </div>
             <div className="form-group">
               <label className="form-label">Declaration Text (Editable)</label>
-              <textarea 
-                className="form-input" 
-                rows={10} 
-                value={formData.declarationText} 
-                onChange={(e) => setFormData({...formData, declarationText: e.target.value})}
+              <textarea
+                className="form-input"
+                rows={10}
+                value={formData.declarationText}
+                onChange={(e) => setFormData({ ...formData, declarationText: e.target.value })}
               />
             </div>
           </section>
@@ -812,27 +812,27 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
       </div>
 
       <div className="form-navigation">
-        <button 
+        <button
           type="button"
-          onClick={() => setStep(s => s - 1)} 
+          onClick={() => setStep(s => s - 1)}
           disabled={step === 1 || loading}
           className="btn btn-outline"
         >
           <ChevronLeft size={20} /> Previous
         </button>
-        
+
         {step < 7 ? (
-          <button 
+          <button
             type="button"
-            onClick={() => setStep(s => s + 1)} 
+            onClick={() => setStep(s => s + 1)}
             className="btn btn-primary"
           >
             Next <ChevronRight size={20} />
           </button>
         ) : (
-          <button 
+          <button
             type="button"
-            onClick={handleSubmit} 
+            onClick={handleSubmit}
             className="btn btn-success"
             disabled={loading || !formData.billedToId}
           >
@@ -843,7 +843,7 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
 
       {/* Inline Party Creation Modal */}
       {showPartyModal && (
-        <div className="modal-overlay" onClick={() => setShowPartyModal(false)}>
+        <div className="modal-overlay" onClick={() => setShowPartyModal(false)} style={{ height: '770px' }}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
             <div className="modal-header">
               <h3>Create {partyModalType === 'BilledTo' ? 'Party (Billed To)' : 'Consignee (Shipped To)'}</h3>
@@ -870,38 +870,38 @@ export function InvoiceForm({ parties, declarations, initialProfile, initialData
               <div className="form-grid" style={{ padding: '1.5rem' }}>
                 <div className="form-group" style={{ gridColumn: 'span 2' }}>
                   <label className="form-label">Party Name *</label>
-                  <input type="text" className="form-input" required value={newParty.name} onChange={e => setNewParty({...newParty, name: e.target.value})} placeholder="e.g. Acme Diamond Corp" />
+                  <input type="text" className="form-input" required value={newParty.name} onChange={e => setNewParty({ ...newParty, name: e.target.value })} placeholder="e.g. Acme Diamond Corp" />
                 </div>
                 <div className="form-group" style={{ gridColumn: 'span 2' }}>
                   <label className="form-label">Address *</label>
-                  <textarea className="form-input" rows={2} required value={newParty.address} onChange={e => setNewParty({...newParty, address: e.target.value})} placeholder="Full address..." />
+                  <textarea className="form-input" rows={2} required value={newParty.address} onChange={e => setNewParty({ ...newParty, address: e.target.value })} placeholder="Full address..." />
                 </div>
                 <div className="form-group">
                   <label className="form-label">City *</label>
-                  <input type="text" className="form-input" required value={newParty.city} onChange={e => setNewParty({...newParty, city: e.target.value})} placeholder="Surat" />
+                  <input type="text" className="form-input" required value={newParty.city} onChange={e => setNewParty({ ...newParty, city: e.target.value })} placeholder="Surat" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">State *</label>
-                  <input type="text" className="form-input" required value={newParty.state} onChange={e => setNewParty({...newParty, state: e.target.value})} placeholder="Gujarat" />
+                  <input type="text" className="form-input" required value={newParty.state} onChange={e => setNewParty({ ...newParty, state: e.target.value })} placeholder="Gujarat" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">State Code *</label>
-                  <input type="text" className="form-input" required value={newParty.stateCode} onChange={e => setNewParty({...newParty, stateCode: e.target.value})} placeholder="24" />
+                  <input type="text" className="form-input" required value={newParty.stateCode} onChange={e => setNewParty({ ...newParty, stateCode: e.target.value })} placeholder="24" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">GSTIN *</label>
                   <input type="text" className="form-input" required value={newParty.gstin} onChange={e => {
                     const val = e.target.value.toUpperCase()
                     if (val.length >= 15) {
-                      setNewParty({...newParty, gstin: val, pan: val.substring(2, 12)})
+                      setNewParty({ ...newParty, gstin: val, pan: val.substring(2, 12) })
                     } else {
-                      setNewParty({...newParty, gstin: val})
+                      setNewParty({ ...newParty, gstin: val })
                     }
                   }} placeholder="24AAAAA0000A1Z5" />
                 </div>
                 <div className="form-group" style={{ gridColumn: 'span 2' }}>
                   <label className="form-label">PAN *</label>
-                  <input type="text" className="form-input" required value={newParty.pan} onChange={e => setNewParty({...newParty, pan: e.target.value.toUpperCase()})} placeholder="Auto-filled from GSTIN" />
+                  <input type="text" className="form-input" required value={newParty.pan} onChange={e => setNewParty({ ...newParty, pan: e.target.value.toUpperCase() })} placeholder="Auto-filled from GSTIN" />
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', padding: '0 1.5rem 1.5rem' }}>
