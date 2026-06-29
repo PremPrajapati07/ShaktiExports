@@ -412,7 +412,11 @@ h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.75rem; }
 .mono { font-family: monospace; letter-spacing: 0.05em; }
 
 /* Invoice Form & View */
-.invoice-form { max-width: 1000px; margin: 0 auto; }
+.invoice-form { 
+  max-width: 1000px; 
+  margin: 0 auto; 
+  padding-bottom: 80px; /* leaves room for fixed navigation bar */
+}
 
 .steps-progress {
   display: flex;
@@ -508,15 +512,33 @@ h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.75rem; }
 .words-text { font-weight: 600; font-style: italic; color: var(--primary); }
 
 .form-navigation { 
-  display: flex; 
-  justify-content: space-between; 
-  margin-top: 2rem; 
-  position: sticky;
+  position: fixed; 
   bottom: 0;
+  left: 280px; /* Offset for desktop sidebar */
+  right: 0;
   background-color: var(--background);
-  padding: 1.25rem 0;
+  padding: 1.25rem 2rem;
   border-top: 1px solid var(--border);
-  z-index: 10;
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+  transition: left 0.3s ease;
+}
+
+.form-navigation-inner {
+  width: 100%;
+  max-width: 1000px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .form-navigation {
+    left: 0; /* No sidebar on mobile */
+    padding: 1rem;
+  }
 }
 
 .step-dot.active {
@@ -891,24 +913,36 @@ h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.75rem; }
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px); /* Premium background blur */
+  overflow-y: auto;
   z-index: 1000;
+  padding: 2rem 1rem;
 }
 
 .modal-content {
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 12px;
   width: 100%;
   max-width: 600px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: var(--shadow);
+  margin: 2rem auto; /* Vertical auto margin supports infinite viewport height scaling */
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
+  position: relative;
+  animation: modalEnter 0.25s ease-out;
+}
+
+@keyframes modalEnter {
+  from {
+    transform: translateY(15px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .modal-header {
@@ -922,6 +956,7 @@ h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.75rem; }
 .modal-header h3 {
   margin: 0;
   font-size: 1.25rem;
+  font-weight: 600;
   color: var(--primary);
 }
 
